@@ -175,7 +175,6 @@ export default function Home() {
             Imprimir todo el stock
           </Link>
         </div>
-
         <SelectedBar
           selectedIds={selectedIds}
           onClear={() => setSelectedIds([])}
