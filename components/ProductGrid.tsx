@@ -1,19 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Product } from "@/data/products";
+import type { PriceOptionId, Product, SelectedPriceIds } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 
 type ProductGridProps = {
   products: Product[];
   selectedIds: string[];
+  selectedPriceIds: SelectedPriceIds;
   onToggle: (id: string) => void;
+  onPriceToggle: (id: string, priceId: PriceOptionId) => void;
 };
 
 export function ProductGrid({
   products,
   selectedIds,
+  selectedPriceIds,
   onToggle,
+  onPriceToggle,
 }: ProductGridProps) {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -37,7 +41,9 @@ export function ProductGrid({
           key={product.id}
           product={product}
           selected={selectedSet.has(product.id)}
+          selectedPriceId={selectedPriceIds[product.id]}
           onToggle={() => onToggle(product.id)}
+          onPriceToggle={(priceId) => onPriceToggle(product.id, priceId)}
         />
       ))}
     </section>

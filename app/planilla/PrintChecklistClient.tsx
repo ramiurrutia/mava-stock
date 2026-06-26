@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FramePreview } from "@/components/FramePreview";
-import { priceOptions, products } from "@/data/products";
+import {
+  findPriceOption,
+  parseSelectedPriceIds,
+  products,
+  serializeSelectedPriceIds,
+} from "@/data/products";
 
 export function PrintChecklistClient() {
   const searchParams = useSearchParams();
@@ -13,6 +18,15 @@ export function PrintChecklistClient() {
       ?.split(",")
       .map((id) => id.trim())
       .filter(Boolean) ?? [];
+  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
+  const selectedPriceParam = serializeSelectedPriceIds(ids, selectedPriceIds);
+  const shareParams = new URLSearchParams({
+    ids: ids.join(","),
+  });
+
+  if (selectedPriceParam) {
+    shareParams.set("prices", selectedPriceParam);
+  }
 
   const selectedProducts = products.filter((product) => ids.includes(product.id));
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
@@ -25,7 +39,7 @@ export function PrintChecklistClient() {
     <main className="print-page mx-auto w-full max-w-6xl px-4 py-8 text-neutral-950 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
         <Link
-          href={ids.length > 0 ? `/compartir?ids=${ids.join(",")}` : "/"}
+          href={ids.length > 0 ? `/compartir?${shareParams.toString()}` : "/"}
           className="h-11 border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950"
         >
           Volver
@@ -79,55 +93,12 @@ export function PrintChecklistClient() {
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 print:grid-cols-3">
             {selectedProducts.map((product, index) => (
-              <article
+              <ChecklistProductCard
                 key={product.id}
-                className="break-inside-avoid border border-neutral-300 p-2"
-              >
-                <div className="grid grid-cols-[72px_1fr] gap-3">
-                  <div className="w-18">
-                    <FramePreview product={product} />
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold text-neutral-500">
-                        #{index + 1}
-                      </p>
-                      <span
-                        className={`text-[10px] font-semibold uppercase ${
-                          product.available
-                            ? "text-[#2f9c95]"
-                            : "text-neutral-500"
-                        }`}
-                      >
-                        {product.available ? "Stock" : "Sin stock"}
-                      </span>
-                    </div>
-
-                    <h2 className="mt-1 text-base font-semibold leading-tight">
-                      {product.code}
-                    </h2>
-                    <p className="mt-1 line-clamp-2 text-xs leading-snug text-neutral-700">
-                      {product.name}
-                    </p>
-                    <p className="mt-1 text-[11px] text-neutral-500">
-                      {product.size}
-                    </p>
-                    <p className="mt-1 text-[10px] leading-tight text-neutral-600">
-                      {priceOptions
-                        .map((option) => `${option.shortLabel} ${option.price}`)
-                        .join(" / ")}
-                    </p>
-
-                    <div className="mt-3 flex items-center gap-2 border border-neutral-400 p-2">
-                      <span className="inline-block h-5 w-5 shrink-0 border-2 border-neutral-800" />
-                      <span className="text-xs font-semibold text-neutral-800">
-                        Seleccionado
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </article>
+                product={product}
+                index={index}
+                selectedPriceId={selectedPriceIds[product.id]}
+              />
             ))}
           </div>
         )}
@@ -138,6 +109,65 @@ export function PrintChecklistClient() {
         </footer>
       </section>
     </main>
+  );
+}
+
+type ChecklistProductCardProps = {
+  product: (typeof products)[number];
+  index: number;
+  selectedPriceId?: Parameters<typeof findPriceOption>[0];
+};
+
+function ChecklistProductCard({
+  product,
+  index,
+  selectedPriceId,
+}: ChecklistProductCardProps) {
+  const selectedPrice = findPriceOption(selectedPriceId);
+
+  return (
+    <article className="break-inside-avoid border border-neutral-300 p-2">
+      <div className="grid grid-cols-[72px_1fr] gap-3">
+        <div className="w-18">
+          <FramePreview product={product} selectedPriceId={selectedPriceId} />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-xs font-semibold text-neutral-500">
+              #{index + 1}
+            </p>
+            <span
+              className={`text-[10px] font-semibold uppercase ${
+                product.available ? "text-[#2f9c95]" : "text-neutral-500"
+              }`}
+            >
+              {product.available ? "Stock" : "Sin stock"}
+            </span>
+          </div>
+
+          <h2 className="mt-1 text-base font-semibold leading-tight">
+            {product.code}
+          </h2>
+          <p className="mt-1 line-clamp-2 text-xs leading-snug text-neutral-700">
+            {product.name}
+          </p>
+          <p className="mt-1 text-[11px] text-neutral-500">{product.size}</p>
+          <p className="mt-1 text-[10px] font-semibold leading-tight text-neutral-800">
+            {selectedPrice
+              ? `${selectedPrice.shortLabel} ${selectedPrice.price}`
+              : "Precio sin elegir"}
+          </p>
+
+          <div className="mt-3 flex items-center gap-2 border border-neutral-400 p-2">
+            <span className="inline-block h-5 w-5 shrink-0 border-2 border-neutral-800" />
+            <span className="text-xs font-semibold text-neutral-800">
+              Seleccionado
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 

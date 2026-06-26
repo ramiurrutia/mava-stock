@@ -1,31 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
-import { categories, products } from "@/data/products";
+import {
+  categories,
+  finishOptions,
+  productFolders,
+  products,
+  type PriceOptionId,
+  type SelectedPriceIds,
+} from "@/data/products";
+
+const allFolders = "todas";
+const allMeasures = "todas";
+const allFinishes = "todos";
+const defaultPriceId: PriceOptionId = "blanco";
 
 export default function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Todas");
+  const [folder, setFolder] = useState(allFolders);
+  const [measure, setMeasure] = useState(allMeasures);
+  const [finish, setFinish] = useState(allFinishes);
+  const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>({});
 
-  const filteredProducts = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const activeFolder = productFolders.find((item) => item.id === folder);
 
-    return products.filter((product) => {
-      const matchesCategory =
-        category === "Todas" || product.category === category;
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        product.code.toLowerCase().includes(normalizedSearch) ||
-        product.name.toLowerCase().includes(normalizedSearch) ||
-        product.category.toLowerCase().includes(normalizedSearch);
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      category === "Todas" || product.category === category;
+    const matchesFolder = folder === allFolders || product.folderId === folder;
+    const matchesMeasure =
+      measure === allMeasures || product.measureCode === measure;
+    const matchesFinish = finish === allFinishes || product.finish === finish;
+    const matchesSearch =
+      normalizedSearch.length === 0 ||
+      product.code.toLowerCase().includes(normalizedSearch) ||
+      product.name.toLowerCase().includes(normalizedSearch) ||
+      product.category.toLowerCase().includes(normalizedSearch) ||
+      product.size.toLowerCase().includes(normalizedSearch);
 
-      return matchesCategory && matchesSearch;
-    });
-  }, [category, search]);
+    return (
+      matchesCategory &&
+      matchesFolder &&
+      matchesMeasure &&
+      matchesFinish &&
+      matchesSearch
+    );
+  });
 
   function toggleProduct(id: string) {
     const product = products.find((item) => item.id === id);
@@ -34,19 +60,74 @@ export default function Home() {
       return;
     }
 
-    setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((selectedId) => selectedId !== id)
-        : [...current, id],
+    const isSelected = selectedIds.includes(id);
+
+    setSelectedIds(
+      isSelected
+        ? selectedIds.filter((selectedId) => selectedId !== id)
+        : [...selectedIds, id],
     );
+
+    if (isSelected) {
+      setSelectedPriceIds((current) => {
+        const next = { ...current };
+        delete next[id];
+
+        return next;
+      });
+    } else {
+      setSelectedPriceIds((current) => ({
+        ...current,
+        [id]: defaultPriceId,
+      }));
+    }
+  }
+
+  function toggleProductPrice(id: string, priceId: PriceOptionId) {
+    const product = products.find((item) => item.id === id);
+
+    if (!product?.available) {
+      return;
+    }
+
+    setSelectedIds((current) =>
+      current.includes(id) ? current : [...current, id],
+    );
+    setSelectedPriceIds((current) => {
+      if (current[id] === priceId) {
+        const next = { ...current };
+        delete next[id];
+
+        return next;
+      }
+
+      return {
+        ...current,
+        [id]: priceId,
+      };
+    });
   }
 
   function clearFilters() {
     setSearch("");
     setCategory("Todas");
+    setFolder(allFolders);
+    setMeasure(allMeasures);
+    setFinish(allFinishes);
   }
 
-  const hasFilters = Boolean(search) || category !== "Todas";
+  function selectFolder(nextFolder: string) {
+    setFolder(nextFolder);
+    setMeasure(allMeasures);
+    setFinish(allFinishes);
+  }
+
+  const hasFilters =
+    Boolean(search) ||
+    category !== "Todas" ||
+    folder !== allFolders ||
+    measure !== allMeasures ||
+    finish !== allFinishes;
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
@@ -80,7 +161,7 @@ export default function Home() {
                 id="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar codigo, nombre o tema"
+                placeholder="Buscar codigo, nombre, medida o tema"
                 className="h-12 w-full border border-neutral-300 bg-white px-4 pr-10 text-sm text-neutral-950 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
               />
               {search ? (
@@ -120,6 +201,162 @@ export default function Home() {
               })}
             </div>
           </div>
+
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase text-neutral-500">
+                Carpetas por medidas
+              </p>
+              {activeFolder ? (
+                <p className="hidden text-xs text-neutral-500 sm:block">
+                  {activeFolder.description}
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              role="group"
+              aria-label="Filtrar por carpeta de medidas"
+              className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              <button
+                type="button"
+                onClick={() => selectFolder(allFolders)}
+                className={`border p-3 text-left transition ${
+                  folder === allFolders
+                    ? "border-neutral-950 bg-neutral-950 text-white"
+                    : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
+                }`}
+              >
+                <span className="block text-sm font-semibold">Todas</span>
+                <span
+                  className={`mt-1 block text-xs ${
+                    folder === allFolders ? "text-neutral-200" : "text-neutral-500"
+                  }`}
+                >
+                  Todo el catalogo
+                </span>
+              </button>
+
+              {productFolders.map((item) => {
+                const active = folder === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectFolder(item.id)}
+                    className={`border p-3 text-left transition ${
+                      active
+                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">
+                      {item.label}
+                    </span>
+                    <span
+                      className={`mt-1 block text-xs ${
+                        active ? "text-neutral-200" : "text-neutral-500"
+                      }`}
+                    >
+                      {item.measures
+                        .map((measureOption) =>
+                          `${measureOption.code} ${measureOption.size}`,
+                        )
+                        .join(" / ")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeFolder ? (
+              <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
+                    Medida
+                  </p>
+                  <div
+                    role="group"
+                    aria-label="Filtrar por medida"
+                    className="flex gap-2 overflow-x-auto pb-1"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setMeasure(allMeasures)}
+                      className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                        measure === allMeasures
+                          ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                          : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                      }`}
+                    >
+                      Todas
+                    </button>
+                    {activeFolder.measures.map((item) => {
+                      const active = measure === item.code;
+
+                      return (
+                        <button
+                          key={item.code}
+                          type="button"
+                          onClick={() => setMeasure(item.code)}
+                          className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                            active
+                              ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                          }`}
+                        >
+                          {item.code} {item.size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
+                    Tipo
+                  </p>
+                  <div
+                    role="group"
+                    aria-label="Filtrar por tipo"
+                    className="flex gap-2 overflow-x-auto pb-1"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setFinish(allFinishes)}
+                      className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                        finish === allFinishes
+                          ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                          : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {finishOptions.map((item) => {
+                      const active = finish === item.id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setFinish(item.id)}
+                          className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                            active
+                              ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -146,7 +383,9 @@ export default function Home() {
           <ProductGrid
             products={filteredProducts}
             selectedIds={selectedIds}
+            selectedPriceIds={selectedPriceIds}
             onToggle={toggleProduct}
+            onPriceToggle={toggleProductPrice}
           />
         ) : (
           <section className="border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
@@ -177,7 +416,11 @@ export default function Home() {
         </div>
         <SelectedBar
           selectedIds={selectedIds}
-          onClear={() => setSelectedIds([])}
+          selectedPriceIds={selectedPriceIds}
+          onClear={() => {
+            setSelectedIds([]);
+            setSelectedPriceIds({});
+          }}
         />
       </div>
     </main>

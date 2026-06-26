@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FramePreview } from "@/components/FramePreview";
-import { priceOptions, products } from "@/data/products";
+import {
+  parseSelectedPriceIds,
+  priceOptions,
+  products,
+  serializeSelectedPriceIds,
+} from "@/data/products";
 
 export function ShareSelectionClient() {
   const searchParams = useSearchParams();
@@ -13,6 +18,15 @@ export function ShareSelectionClient() {
       ?.split(",")
       .map((id) => id.trim())
       .filter(Boolean) ?? [];
+  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
+  const selectedPriceParam = serializeSelectedPriceIds(ids, selectedPriceIds);
+  const checklistParams = new URLSearchParams({
+    ids: ids.join(","),
+  });
+
+  if (selectedPriceParam) {
+    checklistParams.set("prices", selectedPriceParam);
+  }
 
   const selectedProducts = products.filter((product) => ids.includes(product.id));
 
@@ -35,7 +49,7 @@ export function ShareSelectionClient() {
           <div className="flex gap-2">
             {selectedProducts.length > 0 ? (
               <Link
-                href={`/planilla?ids=${ids.join(",")}`}
+                href={`/planilla?${checklistParams.toString()}`}
                 target="_blank"
                 className="bg-neutral-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800"
               >
@@ -68,7 +82,10 @@ export function ShareSelectionClient() {
                 }`}
               >
                 <div className="relative bg-[#efede8] p-2">
-                  <FramePreview product={product} />
+                  <FramePreview
+                    product={product}
+                    selectedPriceId={selectedPriceIds[product.id]}
+                  />
                   {!product.available ? (
                     <span className="absolute left-3 top-3 bg-neutral-950 px-2 py-1 text-[11px] font-semibold text-white">
                       Sin stock
@@ -92,17 +109,37 @@ export function ShareSelectionClient() {
                     <p className="text-neutral-500">{product.category}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    {priceOptions.map((option) => (
-                      <div key={option.label} className="border border-neutral-200 p-2">
-                        <p className="truncate text-neutral-500">
-                          {option.shortLabel}
-                        </p>
-                        <p className="mt-0.5 font-semibold text-neutral-950">
-                          {option.price}
-                        </p>
-                      </div>
-                    ))}
+                    {priceOptions.map((option) => {
+                      const active = selectedPriceIds[product.id] === option.id;
+
+                      return (
+                        <div
+                          key={option.id}
+                          className={`border p-2 ${
+                            active
+                              ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                              : "border-neutral-200"
+                          }`}
+                        >
+                          <p
+                            className={`truncate ${
+                              active ? "text-white/80" : "text-neutral-500"
+                            }`}
+                          >
+                            {option.shortLabel}
+                          </p>
+                          <p className="mt-0.5 font-semibold">
+                            {option.price}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
+                  {!selectedPriceIds[product.id] ? (
+                    <p className="text-[11px] font-medium text-neutral-500">
+                      Precio sin elegir
+                    </p>
+                  ) : null}
                 </div>
               </article>
             ))}

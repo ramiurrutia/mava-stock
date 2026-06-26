@@ -1,13 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { priceOptions, type Product } from "@/data/products";
+import {
+  findPriceOption,
+  priceOptions,
+  serializeSelectedPriceIds,
+  type Product,
+  type SelectedPriceIds,
+} from "@/data/products";
 
 type CheckoutFormProps = {
   selectedProducts: Product[];
+  selectedPriceIds: SelectedPriceIds;
 };
 
-export function CheckoutForm({ selectedProducts }: CheckoutFormProps) {
+export function CheckoutForm({
+  selectedProducts,
+  selectedPriceIds,
+}: CheckoutFormProps) {
   const router = useRouter();
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -18,17 +28,33 @@ export function CheckoutForm({ selectedProducts }: CheckoutFormProps) {
     const whatsapp = String(formData.get("whatsapp") ?? "").trim();
     const company = String(formData.get("company") ?? "").trim();
     const selectedIds = selectedProducts.map((product) => product.id);
-    const visualSelectionUrl = `${window.location.origin}/compartir?ids=${selectedIds.join(",")}`;
+    const selectionParams = new URLSearchParams({
+      ids: selectedIds.join(","),
+    });
+    const selectedPriceParam = serializeSelectedPriceIds(
+      selectedIds,
+      selectedPriceIds,
+    );
+
+    if (selectedPriceParam) {
+      selectionParams.set("prices", selectedPriceParam);
+    }
+
+    const visualSelectionUrl = `${window.location.origin}/compartir?${selectionParams.toString()}`;
     const mavaWhatsapp = process.env.NEXT_PUBLIC_MAVA_WHATSAPP?.replace(
       /\D/g,
       "",
     );
 
     const productLines = selectedProducts
-      .map(
-        (product, index) =>
-          `${index + 1}. ${product.code} - ${product.name} (${product.size})`,
-      )
+      .map((product, index) => {
+        const selectedPrice = findPriceOption(selectedPriceIds[product.id]);
+        const priceLabel = selectedPrice
+          ? `${selectedPrice.label} ${selectedPrice.price}`
+          : "Precio sin elegir";
+
+        return `${index + 1}. ${product.code} - ${product.name} (${product.size}) - ${priceLabel}`;
+      })
       .join("\n");
     const priceLines = priceOptions
       .map((option) => `${option.label}: ${option.price}`)

@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { FramePreview } from "@/components/FramePreview";
-import { priceOptions, products } from "@/data/products";
+import {
+  parseSelectedPriceIds,
+  priceOptions,
+  products,
+  serializeSelectedPriceIds,
+  type PriceOptionId,
+} from "@/data/products";
 
 export function SelectionClient() {
   const searchParams = useSearchParams();
@@ -14,14 +20,33 @@ export function SelectionClient() {
     ?.split(",")
     .map((id) => id.trim())
     .filter(Boolean) ?? [];
+  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
 
   const selectedProducts = products.filter((product) => ids.includes(product.id));
 
+  function buildSelectionUrl(nextIds: string[]) {
+    if (nextIds.length === 0) {
+      return "/seleccion";
+    }
+
+    const nextParams = new URLSearchParams({
+      ids: nextIds.join(","),
+    });
+    const selectedPriceParam = serializeSelectedPriceIds(
+      nextIds,
+      selectedPriceIds,
+    );
+
+    if (selectedPriceParam) {
+      nextParams.set("prices", selectedPriceParam);
+    }
+
+    return `/seleccion?${nextParams.toString()}`;
+  }
+
   function removeProduct(id: string) {
     const nextIds = ids.filter((item) => item !== id);
-    router.replace(
-      nextIds.length > 0 ? `/seleccion?ids=${nextIds.join(",")}` : "/seleccion",
-    );
+    router.replace(buildSelectionUrl(nextIds));
   }
 
   function clearSelection() {
@@ -98,12 +123,16 @@ export function SelectionClient() {
                 <SelectedProductCard
                   key={product.id}
                   product={product}
+                  selectedPriceId={selectedPriceIds[product.id]}
                   onRemove={() => removeProduct(product.id)}
                 />
               ))}
             </section>
 
-            <CheckoutForm selectedProducts={selectedProducts} />
+            <CheckoutForm
+              selectedProducts={selectedProducts}
+              selectedPriceIds={selectedPriceIds}
+            />
           </>
         )}
       </div>
@@ -113,10 +142,15 @@ export function SelectionClient() {
 
 type SelectedProductCardProps = {
   product: (typeof products)[number];
+  selectedPriceId?: PriceOptionId;
   onRemove: () => void;
 };
 
-function SelectedProductCard({ product, onRemove }: SelectedProductCardProps) {
+function SelectedProductCard({
+  product,
+  selectedPriceId,
+  onRemove,
+}: SelectedProductCardProps) {
   const isUnavailable = !product.available;
 
   return (
@@ -126,7 +160,7 @@ function SelectedProductCard({ product, onRemove }: SelectedProductCardProps) {
       }`}
     >
       <div className="relative bg-[#efede8] p-2">
-        <FramePreview product={product} />
+        <FramePreview product={product} selectedPriceId={selectedPriceId} />
         {isUnavailable ? (
           <span className="absolute left-3 top-3 bg-neutral-950 px-2 py-1 text-[11px] font-semibold text-white">
             Sin stock
@@ -148,15 +182,35 @@ function SelectedProductCard({ product, onRemove }: SelectedProductCardProps) {
           <p className="text-neutral-500">{product.category}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-[11px]">
-          {priceOptions.map((option) => (
-            <div key={option.label} className="border border-neutral-200 p-2">
-              <p className="truncate text-neutral-500">{option.shortLabel}</p>
-              <p className="mt-0.5 font-semibold text-neutral-950">
-                {option.price}
-              </p>
-            </div>
-          ))}
+          {priceOptions.map((option) => {
+            const active = selectedPriceId === option.id;
+
+            return (
+              <div
+                key={option.id}
+                className={`border p-2 ${
+                  active
+                    ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                    : "border-neutral-200"
+                }`}
+              >
+                <p
+                  className={`truncate ${
+                    active ? "text-white/80" : "text-neutral-500"
+                  }`}
+                >
+                  {option.shortLabel}
+                </p>
+                <p className="mt-0.5 font-semibold">{option.price}</p>
+              </div>
+            );
+          })}
         </div>
+        {!selectedPriceId ? (
+          <p className="text-[11px] font-medium text-neutral-500">
+            Precio sin elegir
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={onRemove}

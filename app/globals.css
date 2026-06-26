@@ -31,7 +31,7 @@ body {
 }
 
 .frame-art {
-  inset: 10.08% 12.29% 9.92%;
+  inset: 10% 8%;
   background: var(--art-background);
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
