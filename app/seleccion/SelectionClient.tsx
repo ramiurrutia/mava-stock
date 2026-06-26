@@ -5,6 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { FramePreview } from "@/components/FramePreview";
 import {
+  applyLocalStock,
+  useLocalStock,
+} from "@/components/useAdminStock";
+import {
+  formatPriceTotal,
+  getSelectedPriceTotal,
   parseSelectedPriceIds,
   priceOptions,
   products,
@@ -15,6 +21,7 @@ import {
 export function SelectionClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { unavailableProductIds } = useLocalStock();
   const ids = searchParams
     .get("ids")
     ?.split(",")
@@ -22,7 +29,15 @@ export function SelectionClient() {
     .filter(Boolean) ?? [];
   const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
 
-  const selectedProducts = products.filter((product) => ids.includes(product.id));
+  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const selectedProducts = productsWithLocalStock.filter((product) =>
+    ids.includes(product.id),
+  );
+  const selectedProductIds = selectedProducts.map((product) => product.id);
+  const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
+  const unpricedCount = selectedProductIds.filter(
+    (id) => !selectedPriceIds[id],
+  ).length;
 
   function buildSelectionUrl(nextIds: string[]) {
     if (nextIds.length === 0) {
@@ -109,13 +124,29 @@ export function SelectionClient() {
                   Usa Quitar solo si queres sacar un cuadro del pedido.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="text-left text-sm font-semibold text-neutral-500 underline-offset-4 hover:text-neutral-950 hover:underline sm:text-right"
-              >
-                Vaciar seleccion
-              </button>
+              <div className="sm:text-right">
+                <p className="text-xs font-semibold uppercase text-neutral-500">
+                  Total seleccionado
+                </p>
+                <p className="mt-1 text-2xl font-semibold tracking-tight">
+                  {formatPriceTotal(totalPrice)}
+                </p>
+                {unpricedCount > 0 ? (
+                  <p className="mt-1 text-xs font-medium text-neutral-500">
+                    {unpricedCount}{" "}
+                    {unpricedCount === 1
+                      ? "cuadro sin precio"
+                      : "cuadros sin precio"}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="mt-2 text-left text-sm font-semibold text-neutral-500 underline-offset-4 hover:text-neutral-950 hover:underline sm:text-right"
+                >
+                  Vaciar seleccion
+                </button>
+              </div>
             </div>
 
             <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">

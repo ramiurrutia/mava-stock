@@ -233,6 +233,25 @@ export function findPriceOption(priceId?: PriceOptionId) {
   return priceOptions.find((option) => option.id === priceId);
 }
 
+export function formatPriceTotal(amountInThousands: number) {
+  if (amountInThousands < 1000) {
+    return `$${amountInThousands}k`;
+  }
+
+  return `$${(amountInThousands * 1000).toLocaleString("es-AR")}`;
+}
+
+export function getSelectedPriceTotal(
+  selectedIds: string[],
+  selectedPriceIds: SelectedPriceIds,
+) {
+  return selectedIds.reduce((total, id) => {
+    const selectedPrice = findPriceOption(selectedPriceIds[id]);
+
+    return total + (selectedPrice?.amountInThousands ?? 0);
+  }, 0);
+}
+
 export function parseSelectedPriceIds(value?: string | null): SelectedPriceIds {
   if (!value) {
     return {};

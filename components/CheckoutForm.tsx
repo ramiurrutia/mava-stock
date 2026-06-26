@@ -2,8 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import {
-  findPriceOption,
-  priceOptions,
   serializeSelectedPriceIds,
   type Product,
   type SelectedPriceIds,
@@ -46,34 +44,21 @@ export function CheckoutForm({
       "",
     );
 
-    const productLines = selectedProducts
-      .map((product, index) => {
-        const selectedPrice = findPriceOption(selectedPriceIds[product.id]);
-        const priceLabel = selectedPrice
-          ? `${selectedPrice.label} ${selectedPrice.price}`
-          : "Precio sin elegir";
-
-        return `${index + 1}. ${product.code} - ${product.name} (${product.size}) - ${priceLabel}`;
-      })
-      .join("\n");
-    const priceLines = priceOptions
-      .map((option) => `${option.label}: ${option.price}`)
-      .join("\n");
+    const selectedCodes = selectedProducts
+      .map((product) => product.code)
+      .join(", ");
 
     const message = [
       "Seleccione estos cuadros",
       "",
-      productLines,
-      "",
-      "Precios:",
-      priceLines,
+      `Codigos: ${selectedCodes}`,
       "",
       "Mis datos:",
       `Nombre: ${name}`,
       `WhatsApp: ${whatsapp}`,
       company ? `Local / empresa: ${company}` : null,
       "",
-      `Seleccion visual: ${visualSelectionUrl}`,
+      `Detalle visual: ${visualSelectionUrl}`,
     ]
       .filter(Boolean)
       .join("\n");

@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { FramePreview } from "@/components/FramePreview";
 import { priceOptions, products } from "@/data/products";
+import {
+  applyLocalStock,
+  useAdminMode,
+  useLocalStock,
+} from "@/components/useAdminStock";
 
 export function PrintStockClient() {
+  const { isAdmin } = useAdminMode();
+  const { unavailableProductIds } = useLocalStock();
+  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
 
   function printPage() {
@@ -20,13 +28,15 @@ export function PrintStockClient() {
         >
           Volver
         </Link>
-        <button
-          type="button"
-          onClick={printPage}
-          className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
-        >
-          Imprimir / guardar PDF
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={printPage}
+            className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          >
+            Imprimir / guardar PDF
+          </button>
+        ) : null}
       </div>
 
       <section className="bg-white p-5 shadow-sm print:p-0 print:shadow-none">
@@ -48,14 +58,15 @@ export function PrintStockClient() {
                 <span className="font-semibold">Fecha:</span> {today}
               </p>
               <p>
-                <span className="font-semibold">Total:</span> {products.length}
+                <span className="font-semibold">Total:</span>{" "}
+                {productsWithLocalStock.length}
               </p>
             </div>
           </div>
         </header>
 
         <section className="mt-4 grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 print:gap-1.5">
-          {products.map((product) => (
+          {productsWithLocalStock.map((product) => (
             <article
               key={product.id}
               className={`break-inside-avoid border border-neutral-300 p-1.5 ${

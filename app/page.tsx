@@ -5,6 +5,11 @@ import { useState } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
 import {
+  applyLocalStock,
+  useAdminMode,
+  useLocalStock,
+} from "@/components/useAdminStock";
+import {
   categories,
   finishOptions,
   productFolders,
@@ -26,11 +31,14 @@ export default function Home() {
   const [measure, setMeasure] = useState(allMeasures);
   const [finish, setFinish] = useState(allFinishes);
   const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>({});
+  const { isAdmin } = useAdminMode();
+  const { unavailableProductIds } = useLocalStock();
 
   const activeFolder = productFolders.find((item) => item.id === folder);
+  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
 
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = productsWithLocalStock.filter((product) => {
     const matchesCategory =
       category === "Todas" || product.category === category;
     const matchesFolder = folder === allFolders || product.folderId === folder;
@@ -54,7 +62,7 @@ export default function Home() {
   });
 
   function toggleProduct(id: string) {
-    const product = products.find((item) => item.id === id);
+    const product = productsWithLocalStock.find((item) => item.id === id);
 
     if (!product?.available) {
       return;
@@ -84,7 +92,7 @@ export default function Home() {
   }
 
   function toggleProductPrice(id: string, priceId: PriceOptionId) {
-    const product = products.find((item) => item.id === id);
+    const product = productsWithLocalStock.find((item) => item.id === id);
 
     if (!product?.available) {
       return;
@@ -143,13 +151,23 @@ export default function Home() {
               </h1>
             </div>
 
-            <Link
-              href="/stock"
-              target="_blank"
-              className="hidden border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950 sm:block"
-            >
-              Imprimir stock
-            </Link>
+            {isAdmin ? (
+              <div className="hidden gap-2 sm:flex">
+                <Link
+                  href="/admin"
+                  className="border border-[#1f6f65] bg-[#1f6f65] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#185950]"
+                >
+                  Panel admin
+                </Link>
+                <Link
+                  href="/stock"
+                  target="_blank"
+                  className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950"
+                >
+                  Imprimir stock
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-[360px_1fr] lg:items-start">
@@ -405,15 +423,23 @@ export default function Home() {
           </section>
         )}
 
-        <div className="mt-8 flex justify-center sm:hidden">
-          <Link
-            href="/stock"
-            target="_blank"
-            className="text-sm font-medium text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline"
-          >
-            Imprimir todo el stock
-          </Link>
-        </div>
+        {isAdmin ? (
+          <div className="mt-8 flex justify-center gap-4 sm:hidden">
+            <Link
+              href="/admin"
+              className="text-sm font-semibold text-[#185950] underline-offset-4 transition hover:underline"
+            >
+              Panel admin
+            </Link>
+            <Link
+              href="/stock"
+              target="_blank"
+              className="text-sm font-medium text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline"
+            >
+              Imprimir todo el stock
+            </Link>
+          </div>
+        ) : null}
         <SelectedBar
           selectedIds={selectedIds}
           selectedPriceIds={selectedPriceIds}

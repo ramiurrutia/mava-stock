@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FramePreview } from "@/components/FramePreview";
 import {
+  applyLocalStock,
+  useAdminMode,
+  useLocalStock,
+} from "@/components/useAdminStock";
+import {
   findPriceOption,
   parseSelectedPriceIds,
   products,
@@ -12,6 +17,8 @@ import {
 
 export function PrintChecklistClient() {
   const searchParams = useSearchParams();
+  const { isAdmin } = useAdminMode();
+  const { unavailableProductIds } = useLocalStock();
   const ids =
     searchParams
       .get("ids")
@@ -28,7 +35,10 @@ export function PrintChecklistClient() {
     shareParams.set("prices", selectedPriceParam);
   }
 
-  const selectedProducts = products.filter((product) => ids.includes(product.id));
+  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const selectedProducts = productsWithLocalStock.filter((product) =>
+    ids.includes(product.id),
+  );
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
 
   function printPage() {
@@ -44,13 +54,15 @@ export function PrintChecklistClient() {
         >
           Volver
         </Link>
-        <button
-          type="button"
-          onClick={printPage}
-          className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
-        >
-          Imprimir / guardar PDF
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={printPage}
+            className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          >
+            Imprimir / guardar PDF
+          </button>
+        ) : null}
       </div>
 
       <section className="bg-white p-5 shadow-sm print:p-0 print:shadow-none">
