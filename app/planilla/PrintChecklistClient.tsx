@@ -103,7 +103,7 @@ export function PrintChecklistClient() {
             No hay cuadros para imprimir.
           </div>
         ) : (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 print:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 print:grid-cols-3 print:gap-2">
             {selectedProducts.map((product, index) => (
               <ChecklistProductCard
                 key={product.id}
@@ -138,15 +138,15 @@ function ChecklistProductCard({
   const selectedPrice = findPriceOption(selectedPriceId);
 
   return (
-    <article className="break-inside-avoid border border-neutral-300 p-2">
-      <div className="grid grid-cols-[72px_1fr] gap-3">
-        <div className="w-18">
+    <article className="break-inside-avoid border border-neutral-300 p-1.5">
+      <div className="grid grid-cols-[58px_1fr] gap-2">
+        <div className="w-[58px]">
           <FramePreview product={product} selectedPriceId={selectedPriceId} />
         </div>
 
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-xs font-semibold text-neutral-500">
+            <p className="text-[10px] font-semibold text-neutral-500">
               #{index + 1}
             </p>
             <span
@@ -158,28 +158,41 @@ function ChecklistProductCard({
             </span>
           </div>
 
-          <h2 className="mt-1 text-base font-semibold leading-tight">
+          <h2 className="mt-0.5 text-sm font-semibold leading-tight">
             {product.code}
           </h2>
-          <p className="mt-1 line-clamp-2 text-xs leading-snug text-neutral-700">
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-700">
             {product.name}
           </p>
-          <p className="mt-1 text-[11px] text-neutral-500">{product.size}</p>
-          <p className="mt-1 text-[10px] font-semibold leading-tight text-neutral-800">
+          <p className="mt-0.5 text-[10px] text-neutral-500">{product.size}</p>
+          <p className="mt-0.5 text-[10px] font-semibold leading-tight text-neutral-800">
             {selectedPrice
               ? `${selectedPrice.shortLabel} ${selectedPrice.price}`
               : "Precio sin elegir"}
           </p>
-
-          <div className="mt-3 flex items-center gap-2 border border-neutral-400 p-2">
-            <span className="inline-block h-5 w-5 shrink-0 border-2 border-neutral-800" />
-            <span className="text-xs font-semibold text-neutral-800">
-              Seleccionado
-            </span>
-          </div>
         </div>
       </div>
+
+      <div className="mt-1.5 grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-1.5">
+        <ChecklistStatus label="Para armar" />
+        <ChecklistStatus label="Listo" />
+      </div>
     </article>
+  );
+}
+
+type ChecklistStatusProps = {
+  label: string;
+};
+
+function ChecklistStatus({ label }: ChecklistStatusProps) {
+  return (
+    <div className="flex min-h-7 items-center gap-1.5 border border-neutral-400 px-1.5 py-0.5">
+      <span className="inline-block h-3.5 w-3.5 shrink-0 border-2 border-neutral-800" />
+      <span className="whitespace-nowrap text-[10px] font-semibold leading-tight text-neutral-800">
+        {label}
+      </span>
+    </div>
   );
 }
 
