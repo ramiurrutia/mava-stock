@@ -11,7 +11,6 @@ import {
 } from "@/components/useAdminStock";
 import {
   categories,
-  finishOptions,
   productFolders,
   products,
   type PriceOptionId,
@@ -20,7 +19,6 @@ import {
 
 const allFolders = "todas";
 const allMeasures = "todas";
-const allFinishes = "todos";
 const defaultPriceId: PriceOptionId = "blanco";
 
 export default function Home() {
@@ -29,7 +27,6 @@ export default function Home() {
   const [category, setCategory] = useState("Todas");
   const [folder, setFolder] = useState(allFolders);
   const [measure, setMeasure] = useState(allMeasures);
-  const [finish, setFinish] = useState(allFinishes);
   const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>({});
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
@@ -44,7 +41,6 @@ export default function Home() {
     const matchesFolder = folder === allFolders || product.folderId === folder;
     const matchesMeasure =
       measure === allMeasures || product.measureCode === measure;
-    const matchesFinish = finish === allFinishes || product.finish === finish;
     const matchesSearch =
       normalizedSearch.length === 0 ||
       product.code.toLowerCase().includes(normalizedSearch) ||
@@ -56,7 +52,6 @@ export default function Home() {
       matchesCategory &&
       matchesFolder &&
       matchesMeasure &&
-      matchesFinish &&
       matchesSearch
     );
   });
@@ -121,21 +116,18 @@ export default function Home() {
     setCategory("Todas");
     setFolder(allFolders);
     setMeasure(allMeasures);
-    setFinish(allFinishes);
   }
 
   function selectFolder(nextFolder: string) {
     setFolder(nextFolder);
     setMeasure(allMeasures);
-    setFinish(allFinishes);
   }
 
   const hasFilters =
     Boolean(search) ||
     category !== "Todas" ||
     folder !== allFolders ||
-    measure !== allMeasures ||
-    finish !== allFinishes;
+    measure !== allMeasures;
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
@@ -290,87 +282,44 @@ export default function Home() {
             </div>
 
             {activeFolder ? (
-              <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
-                    Medida
-                  </p>
-                  <div
-                    role="group"
-                    aria-label="Filtrar por medida"
-                    className="flex gap-2 overflow-x-auto pb-1"
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
+                  Medida
+                </p>
+                <div
+                  role="group"
+                  aria-label="Filtrar por medida"
+                  className="flex gap-2 overflow-x-auto pb-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setMeasure(allMeasures)}
+                    className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                      measure === allMeasures
+                        ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                        : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                    }`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setMeasure(allMeasures)}
-                      className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                        measure === allMeasures
-                          ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                          : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                      }`}
-                    >
-                      Todas
-                    </button>
-                    {activeFolder.measures.map((item) => {
-                      const active = measure === item.code;
+                    Todas
+                  </button>
+                  {activeFolder.measures.map((item) => {
+                    const active = measure === item.code;
 
-                      return (
-                        <button
-                          key={item.code}
-                          type="button"
-                          onClick={() => setMeasure(item.code)}
-                          className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                            active
-                              ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                          }`}
-                        >
-                          {item.code} {item.size}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
-                    Tipo
-                  </p>
-                  <div
-                    role="group"
-                    aria-label="Filtrar por tipo"
-                    className="flex gap-2 overflow-x-auto pb-1"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setFinish(allFinishes)}
-                      className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                        finish === allFinishes
-                          ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                          : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                      }`}
-                    >
-                      Todos
-                    </button>
-                    {finishOptions.map((item) => {
-                      const active = finish === item.id;
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setFinish(item.id)}
-                          className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                            active
-                              ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => setMeasure(item.code)}
+                        className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
+                          active
+                            ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                            : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
+                        }`}
+                      >
+                        {item.code} {item.size}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}

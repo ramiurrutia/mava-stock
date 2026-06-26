@@ -61,12 +61,12 @@ export function ProductCard({
 
         <div className="p-3 pb-0">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase text-neutral-500">
-              {product.code}
-            </p>
             <h2 className="line-clamp-2 text-sm font-semibold leading-snug">
               {product.name}
             </h2>
+            <p className="mt-1 truncate text-[11px] font-semibold uppercase text-neutral-500">
+              Codigo {product.code}
+            </p>
           </div>
 
           <div className="mt-2 space-y-1 border-t border-neutral-300 pt-3 text-xs">

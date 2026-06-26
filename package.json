@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "generate:products": "node scripts/generate-product-assets.mjs",
+    "rename:product-images": "node scripts/rename-product-images.mjs",
     "start": "next start",
     "lint": "eslint"
   },
