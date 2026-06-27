@@ -117,17 +117,17 @@ export default function Home() {
             </div>
 
             {isAdmin ? (
-              <div className="hidden gap-2 sm:flex">
+              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                 <Link
                   href="/admin"
-                  className="border border-[#1f6f65] bg-[#1f6f65] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#185950]"
+                  className="border border-[#1f6f65] bg-[#1f6f65] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#185950] sm:px-4 sm:text-sm"
                 >
                   Panel admin
                 </Link>
                 <Link
                   href="/stock"
                   target="_blank"
-                  className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950"
+                  className="hidden border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950 sm:block"
                 >
                   Imprimir stock
                 </Link>
@@ -268,12 +268,6 @@ export default function Home() {
 
         {isAdmin ? (
           <div className="mt-6 flex justify-center gap-4 sm:hidden">
-            <Link
-              href="/admin"
-              className="text-sm font-semibold text-[#185950] underline-offset-4 transition hover:underline"
-            >
-              Panel admin
-            </Link>
             <Link
               href="/stock"
               target="_blank"
