@@ -18,7 +18,7 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
   const { width, height } = getProductMeasureDimensions(product);
   const aspectRatio = width / height;
   const isPanoramicFrame = aspectRatio > 1.6;
-  const isBurlap = selectedPriceId === "arpillera";
+  const useWarmFrame = selectedPriceId !== "blanco";
   const frameMargin = Math.min(width, height) * 0.095;
   const verticalInset = (frameMargin / height) * 100;
   const horizontalInset = (frameMargin / width) * 100;
@@ -26,16 +26,18 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
     aspectRatio: `${width} / ${height}`,
   };
   const panoramicFrameStyle: CSSProperties = {
-    backgroundColor: isBurlap ? "#b99b73" : "#c89a6a",
-    backgroundImage: `linear-gradient(90deg, rgba(255,255,255,.32), rgba(255,255,255,0) 18%, rgba(0,0,0,.12) 82%, rgba(255,255,255,.18)), url(${frameLayer.src})`,
+    backgroundColor: useWarmFrame ? "#b98555" : "#d8d2c7",
+    backgroundImage: useWarmFrame
+      ? "linear-gradient(90deg, rgba(255,255,255,.22), rgba(255,255,255,0) 18%, rgba(62,36,16,.24) 82%, rgba(255,255,255,.16)), linear-gradient(180deg, #d5ad7d, #a87546 48%, #d1a678)"
+      : `linear-gradient(90deg, rgba(255,255,255,.32), rgba(255,255,255,0) 18%, rgba(0,0,0,.12) 82%, rgba(255,255,255,.18)), url(${frameLayer.src})`,
     backgroundPosition: "center",
     backgroundSize: "100% 100%, 240px auto",
     boxShadow:
-      "inset 0 0 0 1px rgba(70,45,22,.2), inset 0 8px 16px rgba(255,255,255,.28), inset 0 -10px 18px rgba(55,32,12,.2)",
+      "inset 0 0 0 1px rgba(70,45,22,.28), inset 0 8px 16px rgba(255,255,255,.2), inset 0 -10px 18px rgba(55,32,12,.28)",
   };
   const panoramicMatStyle: CSSProperties = {
     inset: `${verticalInset * 0.5}% ${horizontalInset * 0.55}%`,
-    backgroundColor: isBurlap ? "#d4c1a1" : "#eeeae1",
+    backgroundColor: useWarmFrame ? "#d9c6a6" : "#eeeae1",
     boxShadow:
       "inset 0 0 0 1px rgba(80,70,55,.12), inset 0 7px 16px rgba(255,255,255,.42), inset 0 -7px 16px rgba(55,43,31,.14)",
   };
