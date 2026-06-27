@@ -22,7 +22,7 @@ const allFolders = "todas";
 type AdminView = "stock" | "pedidos";
 
 export function AdminClient() {
-  const { isAdmin, loginAdmin, logoutAdmin } = useAdminMode();
+  const { checkingAdmin, isAdmin, loginAdmin, logoutAdmin } = useAdminMode();
   const {
     markProductsAvailable,
     markProductsUnavailable,
@@ -129,7 +129,9 @@ export function AdminClient() {
           ) : null}
         </div>
 
-        {isAdmin ? (
+        {checkingAdmin ? (
+          <AdminLoadingState />
+        ) : isAdmin ? (
           <div className="mt-5 space-y-5">
             <div className="border border-[#1f6f65] bg-[#1f6f65]/10 p-3">
               <p className="text-sm font-semibold text-[#185950]">
@@ -438,6 +440,20 @@ export function AdminClient() {
   );
 }
 
+function AdminLoadingState() {
+  return (
+    <div className="flex min-h-48 flex-col items-center justify-center gap-3">
+      <span
+        aria-hidden="true"
+        className="h-7 w-7 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-950"
+      />
+      <p className="text-sm font-semibold text-neutral-500">
+        Verificando acceso...
+      </p>
+    </div>
+  );
+}
+
 type SummaryBoxProps = {
   label: string;
   value: number;
@@ -567,7 +583,7 @@ function AdminOrderCard({
           Abrir pedido
         </Link>
         <Link
-          href={`/planilla?pedido=${encodeURIComponent(order.id)}`}
+          href={`/planilla?pedido=${encodeURIComponent(order.id)}&from=admin`}
           target="_blank"
           className="bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
         >

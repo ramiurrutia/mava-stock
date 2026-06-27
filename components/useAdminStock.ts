@@ -88,62 +88,99 @@ export function applyLocalStock(
 }
 
 export function useAdminMode() {
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    async function refreshAdminMode() {
-      const response = await fetch("/api/admin/session", {
-        cache: "no-store",
-        headers: {
-          "x-mava-admin-key": getStoredAdminKey(),
-        },
-      });
+    let active = true;
 
-      if (!response.ok) {
-        setIsAdmin(false);
+    async function refreshAdminMode() {
+      const storedAdminKey = getStoredAdminKey();
+
+      if (!storedAdminKey) {
+        if (active) {
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+        }
         return;
       }
 
-      const data = (await response.json()) as SessionResponse;
-      setIsAdmin(Boolean(data.authenticated));
+      setCheckingAdmin(true);
+
+      try {
+        const response = await fetch("/api/admin/session", {
+          cache: "no-store",
+          headers: {
+            "x-mava-admin-key": storedAdminKey,
+          },
+        });
+
+        if (!active) {
+          return;
+        }
+
+        if (!response.ok) {
+          setIsAdmin(false);
+          return;
+        }
+
+        const data = (await response.json()) as SessionResponse;
+        setIsAdmin(Boolean(data.authenticated));
+      } catch {
+        if (active) {
+          setIsAdmin(false);
+        }
+      } finally {
+        if (active) {
+          setCheckingAdmin(false);
+        }
+      }
     }
 
     refreshAdminMode();
     window.addEventListener(adminModeChangeEvent, refreshAdminMode);
 
     return () => {
+      active = false;
       window.removeEventListener(adminModeChangeEvent, refreshAdminMode);
     };
   }, []);
 
   const loginAdmin = useCallback(async (password: string) => {
-    const response = await fetch("/api/admin/session", {
-      body: JSON.stringify({ password }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
+    setCheckingAdmin(true);
 
-    if (!response.ok) {
-      setIsAdmin(false);
+    try {
+      const response = await fetch("/api/admin/session", {
+        body: JSON.stringify({ password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        setIsAdmin(false);
+        window.dispatchEvent(new Event(adminModeChangeEvent));
+        return false;
+      }
+
+      window.localStorage.setItem(adminKeyStorageKey, password);
+      setIsAdmin(true);
       window.dispatchEvent(new Event(adminModeChangeEvent));
-      return false;
+      return true;
+    } finally {
+      setCheckingAdmin(false);
     }
-
-    window.localStorage.setItem(adminKeyStorageKey, password);
-    setIsAdmin(true);
-    window.dispatchEvent(new Event(adminModeChangeEvent));
-    return true;
   }, []);
 
   const logoutAdmin = useCallback(async () => {
     window.localStorage.removeItem(adminKeyStorageKey);
+    setCheckingAdmin(false);
     setIsAdmin(false);
     window.dispatchEvent(new Event(adminModeChangeEvent));
   }, []);
 
-  return { isAdmin, loginAdmin, logoutAdmin };
+  return { checkingAdmin, isAdmin, loginAdmin, logoutAdmin };
 }
 
 export function useLocalStock() {

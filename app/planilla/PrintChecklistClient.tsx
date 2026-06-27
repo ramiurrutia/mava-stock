@@ -18,12 +18,14 @@ import {
 } from "@/data/products";
 
 type PrintChecklistClientProps = {
+  backTarget?: "admin" | "pedido";
   orderId?: string;
   savedOrder?: CustomerOrder | null;
   savedOrderError?: string;
 };
 
 export function PrintChecklistClient({
+  backTarget = "pedido",
   orderId = "",
   savedOrder = null,
   savedOrderError = "",
@@ -31,6 +33,7 @@ export function PrintChecklistClient({
   if (orderId) {
     return (
       <SavedOrderChecklist
+        backTarget={backTarget}
         order={savedOrder}
         orderError={savedOrderError}
         orderId={orderId}
@@ -61,6 +64,7 @@ function TemporarySelectionChecklist() {
   return (
     <ChecklistShell
       backHref={ids.length > 0 ? `/compartir?${shareParams.toString()}` : "/"}
+      backLabel="Volver"
       canPrint={isAdmin}
       onPrint={printPage}
     >
@@ -95,18 +99,26 @@ function TemporarySelectionChecklist() {
 }
 
 type SavedOrderChecklistProps = {
+  backTarget: "admin" | "pedido";
   order: CustomerOrder | null;
   orderError: string;
   orderId: string;
 };
 
 function SavedOrderChecklist({
+  backTarget,
   order,
   orderError,
   orderId,
 }: SavedOrderChecklistProps) {
   const { isAdmin } = useAdminMode();
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
+  const backHref =
+    order && backTarget === "pedido"
+      ? `/compartir?pedido=${encodeURIComponent(order.id)}`
+      : "/admin";
+  const backLabel =
+    backTarget === "admin" || !order ? "Volver al admin" : "Volver al pedido";
 
   function printPage() {
     window.print();
@@ -114,7 +126,8 @@ function SavedOrderChecklist({
 
   return (
     <ChecklistShell
-      backHref={order ? `/compartir?pedido=${encodeURIComponent(order.id)}` : "/admin"}
+      backHref={backHref}
+      backLabel={backLabel}
       canPrint={isAdmin && Boolean(order)}
       onPrint={printPage}
     >
@@ -156,6 +169,7 @@ function SavedOrderChecklist({
 
 type ChecklistShellProps = {
   backHref: string;
+  backLabel: string;
   canPrint: boolean;
   children: React.ReactNode;
   onPrint: () => void;
@@ -163,6 +177,7 @@ type ChecklistShellProps = {
 
 function ChecklistShell({
   backHref,
+  backLabel,
   canPrint,
   children,
   onPrint,
@@ -174,7 +189,7 @@ function ChecklistShell({
           href={backHref}
           className="h-11 border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950"
         >
-          Volver
+          {backLabel}
         </Link>
         {canPrint ? (
           <button

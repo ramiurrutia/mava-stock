@@ -18,6 +18,8 @@ export default async function PrintChecklistPage({
 }: PrintChecklistPageProps) {
   const params = await searchParams;
   const orderId = readSearchParam(params.pedido).trim();
+  const from = readSearchParam(params.from);
+  const backTarget = from === "admin" ? "admin" : "pedido";
   let savedOrder = null;
   let savedOrderError = "";
 
@@ -35,6 +37,7 @@ export default async function PrintChecklistPage({
   return (
     <Suspense>
       <PrintChecklistClient
+        backTarget={backTarget}
         orderId={orderId}
         savedOrder={savedOrder}
         savedOrderError={savedOrderError}
