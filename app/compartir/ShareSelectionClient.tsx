@@ -17,7 +17,6 @@ import {
   getSelectedPriceTotal,
   parseSelectionParams,
   type PriceOptionId,
-  type SelectedPriceIds,
   products,
 } from "@/data/products";
 
@@ -296,9 +295,8 @@ function SavedOrderShareView({
   orderId,
 }: SavedOrderShareViewProps) {
   const { isAdmin } = useAdminMode();
-  const orderSelectionParams = order ? createOrderSelectionParams(order) : null;
-  const planillaHref = orderSelectionParams
-    ? `/planilla?${orderSelectionParams.toString()}`
+  const planillaHref = order
+    ? `/planilla?pedido=${encodeURIComponent(order.id)}`
     : "";
   const selectedCodes = order?.items.map((item) => item.code).join(", ") ?? "";
 
@@ -461,24 +459,6 @@ function SavedOrderItemCard({ item }: SavedOrderItemCardProps) {
         </div>
       </div>
     </article>
-  );
-}
-
-function createOrderSelectionParams(order: CustomerOrder) {
-  const selectedPriceIds = order.items.reduce<SelectedPriceIds>(
-    (current, item) => {
-      if (isPriceOptionId(item.background)) {
-        current[item.id] = item.background;
-      }
-
-      return current;
-    },
-    {},
-  );
-
-  return createSelectionSearchParams(
-    order.items.map((item) => item.id),
-    selectedPriceIds,
   );
 }
 

@@ -249,6 +249,7 @@ export function useLocalStock() {
 export function useFinishedOrders() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [ordersError, setOrdersError] = useState("");
+  const [deletingOrderId, setDeletingOrderId] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
 
   useEffect(() => {
@@ -322,5 +323,40 @@ export function useFinishedOrders() {
     [],
   );
 
-  return { orders, ordersError, updateOrderStatus, updatingOrderId };
+  const deleteOrder = useCallback(async (id: string) => {
+    setDeletingOrderId(id);
+    setOrdersError("");
+
+    try {
+      const response = await fetch("/api/admin/orders", {
+        body: JSON.stringify({ id }),
+        headers: getAdminHeaders(),
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          await getApiErrorMessage(response, "No se pudo borrar el pedido"),
+        );
+      }
+
+      setOrders((current) => current.filter((order) => order.id !== id));
+      window.dispatchEvent(new Event(ordersChangeEvent));
+    } catch (error) {
+      setOrdersError(
+        error instanceof Error ? error.message : "No se pudo borrar el pedido",
+      );
+    } finally {
+      setDeletingOrderId("");
+    }
+  }, []);
+
+  return {
+    deleteOrder,
+    deletingOrderId,
+    orders,
+    ordersError,
+    updateOrderStatus,
+    updatingOrderId,
+  };
 }

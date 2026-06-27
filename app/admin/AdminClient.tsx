@@ -29,8 +29,14 @@ export function AdminClient() {
     setProductAvailability,
     unavailableProductIds,
   } = useLocalStock();
-  const { orders, ordersError, updateOrderStatus, updatingOrderId } =
-    useFinishedOrders();
+  const {
+    deleteOrder,
+    deletingOrderId,
+    orders,
+    ordersError,
+    updateOrderStatus,
+    updatingOrderId,
+  } = useFinishedOrders();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -379,7 +385,9 @@ export function AdminClient() {
                       <AdminOrderCard
                         key={order.id}
                         order={order}
+                        deleting={deletingOrderId === order.id}
                         updating={updatingOrderId === order.id}
+                        onDelete={() => deleteOrder(order.id)}
                         onStatusChange={(status) =>
                           updateOrderStatus(order.id, status)
                         }
@@ -436,7 +444,9 @@ type SummaryBoxProps = {
 };
 
 type AdminOrderCardProps = {
+  deleting: boolean;
   order: CustomerOrder;
+  onDelete: () => Promise<unknown>;
   updating: boolean;
   onStatusChange: (status: OrderStatus) => Promise<unknown>;
 };
@@ -471,11 +481,23 @@ function getWhatsappHref(value: string) {
 }
 
 function AdminOrderCard({
+  deleting,
   order,
+  onDelete,
   updating,
   onStatusChange,
 }: AdminOrderCardProps) {
   const whatsappHref = getWhatsappHref(order.whatsapp);
+
+  function handleDelete() {
+    const confirmed = window.confirm(
+      `Vas a borrar el pedido #${getShortOrderId(order.id)}. Esta accion no se puede deshacer. Queres continuar?`,
+    );
+
+    if (confirmed) {
+      void onDelete();
+    }
+  }
 
   return (
     <article className="border border-neutral-200 bg-white p-3 shadow-sm">
@@ -544,6 +566,21 @@ function AdminOrderCard({
         >
           Abrir pedido
         </Link>
+        <Link
+          href={`/planilla?pedido=${encodeURIComponent(order.id)}`}
+          target="_blank"
+          className="bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
+        >
+          Planilla
+        </Link>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting || updating}
+          className="border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
+        >
+          {deleting ? "Borrando..." : "Borrar pedido"}
+        </button>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">

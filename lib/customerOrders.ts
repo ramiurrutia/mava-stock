@@ -213,3 +213,16 @@ export async function updateCustomerOrderStatus(
 
   return normalizeCustomerOrder(rows[0] ?? {});
 }
+
+export async function deleteCustomerOrder(id: string) {
+  if (!id) {
+    return;
+  }
+
+  await fetchSupabaseOrders(`${ordersTable}?id=eq.${encodeURIComponent(id)}`, {
+    headers: {
+      Prefer: "return=minimal",
+    },
+    method: "DELETE",
+  });
+}

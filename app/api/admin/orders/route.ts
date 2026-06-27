@@ -4,6 +4,7 @@ import {
   isAdminStoreUnavailableError,
 } from "@/lib/adminStore";
 import {
+  deleteCustomerOrder,
   getCustomerOrders,
   isCustomerOrdersUnavailableError,
   updateCustomerOrderStatus,
@@ -115,6 +116,37 @@ export async function PATCH(request: Request) {
     console.error(error);
     return Response.json(
       { error: "No se pudo actualizar el estado" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!isAdminRequest(request)) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    id?: unknown;
+  } | null;
+  const id = typeof body?.id === "string" ? body.id : "";
+
+  if (!id) {
+    return Response.json({ error: "Pedido invalido" }, { status: 400 });
+  }
+
+  try {
+    await deleteCustomerOrder(id);
+
+    return Response.json({ deletedId: id });
+  } catch (error) {
+    if (isCustomerOrdersUnavailableError(error)) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
+
+    console.error(error);
+    return Response.json(
+      { error: "No se pudo borrar el pedido" },
       { status: 500 },
     );
   }

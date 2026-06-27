@@ -261,29 +261,6 @@ export default function Home() {
               >
                 ← Volver a tamaños
               </button>
-
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-                <label htmlFor="catalog-search" className="sr-only">
-                  Buscar cuadros
-                </label>
-                <input
-                  id="catalog-search"
-                  type="search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar por nombre o tematica"
-                  className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-950 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
-                />
-                <p className="text-sm text-neutral-500 sm:text-right">
-                  {filteredProducts.length}{" "}
-                  {filteredProducts.length === 1
-                    ? "cuadro encontrado"
-                    : "cuadros encontrados"}
-                  {selectedIds.length > 0
-                    ? ` / ${selectedIds.length} elegidos`
-                    : ""}
-                </p>
-              </div>
             </div>
 
             {filteredProducts.length > 0 ? (
