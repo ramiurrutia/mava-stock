@@ -5,14 +5,14 @@ export default function ThanksPage() {
     <main className="grid min-h-screen place-items-center bg-[#f7f4ef] px-4 py-12 text-neutral-950">
       <section className="w-full max-w-xl border border-[#eadfd4] bg-white px-6 py-12 text-center shadow-sm">
         <p className="text-xs font-semibold uppercase text-[#1f6f65]">
-          WhatsApp listo
+          Pedido guardado
         </p>
         <h1 className="mt-2 text-3xl font-semibold">
           Tu seleccion esta preparada
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-          Envia el mensaje desde WhatsApp y nos comunicamos para confirmar
-          disponibilidad y coordinar los proximos pasos.
+          Envia el mensaje desde WhatsApp. El pedido tambien queda registrado
+          para verlo desde el panel admin.
         </p>
         <Link
           href="/"

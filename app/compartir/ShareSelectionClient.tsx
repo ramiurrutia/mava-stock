@@ -9,36 +9,50 @@ import {
   useAdminMode,
   useLocalStock,
 } from "@/components/useAdminStock";
+import { orderStatusLabels, type CustomerOrder } from "@/data/orders";
 import {
+  createSelectionSearchParams,
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
-  parseSelectedPriceIds,
+  parseSelectionParams,
+  type PriceOptionId,
+  type SelectedPriceIds,
   products,
-  serializeSelectedPriceIds,
 } from "@/data/products";
 
-export function ShareSelectionClient() {
+type ShareSelectionClientProps = {
+  orderId?: string;
+  savedOrder?: CustomerOrder | null;
+  savedOrderError?: string;
+};
+
+export function ShareSelectionClient({
+  orderId = "",
+  savedOrder = null,
+  savedOrderError = "",
+}: ShareSelectionClientProps) {
+  if (orderId) {
+    return (
+      <SavedOrderShareView
+        order={savedOrder}
+        orderId={orderId}
+        orderError={savedOrderError}
+      />
+    );
+  }
+
+  return <TemporarySelectionShareView />;
+}
+
+function TemporarySelectionShareView() {
   const searchParams = useSearchParams();
   const { isAdmin } = useAdminMode();
   const { createFinishedOrder, unavailableProductIds } = useLocalStock();
   const [finishingOrder, setFinishingOrder] = useState(false);
   const [finishError, setFinishError] = useState("");
-  const ids =
-    searchParams
-      .get("ids")
-      ?.split(",")
-      .map((id) => id.trim())
-      .filter(Boolean) ?? [];
-  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
-  const selectedPriceParam = serializeSelectedPriceIds(ids, selectedPriceIds);
-  const checklistParams = new URLSearchParams({
-    ids: ids.join(","),
-  });
-
-  if (selectedPriceParam) {
-    checklistParams.set("prices", selectedPriceParam);
-  }
+  const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
+  const checklistParams = createSelectionSearchParams(ids, selectedPriceIds);
 
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const selectedProducts = productsWithLocalStock.filter((product) =>
@@ -268,4 +282,227 @@ export function ShareSelectionClient() {
       </div>
     </main>
   );
+}
+
+type SavedOrderShareViewProps = {
+  order: CustomerOrder | null;
+  orderError: string;
+  orderId: string;
+};
+
+function SavedOrderShareView({
+  order,
+  orderError,
+  orderId,
+}: SavedOrderShareViewProps) {
+  const { isAdmin } = useAdminMode();
+  const orderSelectionParams = order ? createOrderSelectionParams(order) : null;
+  const planillaHref = orderSelectionParams
+    ? `/planilla?${orderSelectionParams.toString()}`
+    : "";
+  const selectedCodes = order?.items.map((item) => item.code).join(", ") ?? "";
+
+  return (
+    <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <header className="mb-6 flex flex-col justify-between gap-4 border-b border-neutral-300 pb-5 sm:flex-row sm:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase text-neutral-500">
+              Pedido guardado
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Cuadros solicitados
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+              Pedido #{getShortOrderId(orderId)} cargado desde el registro
+              guardado.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            {isAdmin && planillaHref ? (
+              <Link
+                href={planillaHref}
+                target="_blank"
+                className="bg-neutral-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              >
+                Imprimir planilla
+              </Link>
+            ) : null}
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950"
+              >
+                Panel admin
+              </Link>
+            ) : null}
+            <Link
+              href="/"
+              className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950"
+            >
+              Catalogo
+            </Link>
+          </div>
+        </header>
+
+        {!order ? (
+          <section className="border border-neutral-200 bg-white px-6 py-14 text-center shadow-sm">
+            <h2 className="text-xl font-semibold">No hay pedido para mostrar</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+              {orderError || "El link no tiene un pedido valido."}
+            </p>
+          </section>
+        ) : (
+          <>
+            <section className="mb-6 border border-neutral-200 bg-white p-4 shadow-sm">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1 text-xs font-semibold text-[#185950]">
+                      {orderStatusLabels[order.status]}
+                    </span>
+                    <span className="text-xs font-semibold uppercase text-neutral-500">
+                      {formatOrderDate(order.createdAt)}
+                    </span>
+                  </div>
+                  <h2 className="mt-2 text-xl font-semibold">
+                    {order.customerName}
+                  </h2>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-600">
+                    <span>WhatsApp: {order.whatsapp}</span>
+                    {order.businessName ? (
+                      <span>Local / empresa: {order.businessName}</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase text-neutral-500">
+                      Codigos seleccionados
+                    </p>
+                    <p className="mt-1 text-sm font-semibold leading-6">
+                      {selectedCodes}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="lg:text-right">
+                  <p className="text-xs font-semibold uppercase text-neutral-500">
+                    Total
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold tracking-tight">
+                    {formatMoney(order.total)}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-neutral-500">
+                    {order.items.length}{" "}
+                    {order.items.length === 1 ? "cuadro" : "cuadros"}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {order.items.map((item, index) => (
+                <SavedOrderItemCard key={`${item.id}-${index}`} item={item} />
+              ))}
+            </section>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+type SavedOrderItemCardProps = {
+  item: CustomerOrder["items"][number];
+};
+
+function SavedOrderItemCard({ item }: SavedOrderItemCardProps) {
+  const product = products.find((current) => current.id === item.id);
+  const selectedPriceId = isPriceOptionId(item.background)
+    ? item.background
+    : undefined;
+
+  return (
+    <article className="border border-neutral-200 bg-white p-3 shadow-sm">
+      <div className="relative bg-[#efede8] p-2">
+        {product ? (
+          <FramePreview product={product} selectedPriceId={selectedPriceId} />
+        ) : (
+          <div className="grid aspect-[4/5] place-items-center border border-dashed border-neutral-300 bg-white px-3 text-center">
+            <p className="text-xs font-semibold text-neutral-500">
+              {item.code}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div>
+          <p className="text-xs font-semibold uppercase text-neutral-500">
+            {item.code}
+          </p>
+          <h2 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
+            {item.name}
+          </h2>
+        </div>
+        <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">
+          <p className="leading-tight text-neutral-500">{item.size}</p>
+          <p className="text-neutral-500">
+            {item.backgroundLabel || "Precio"}
+          </p>
+        </div>
+        <div className="flex min-h-8 items-center justify-between gap-2 border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1.5 text-[11px]">
+          <span className="truncate font-semibold text-[#1f6f65]">
+            {item.backgroundLabel || "Precio"}
+          </span>
+          <span className="shrink-0 font-semibold text-neutral-950">
+            {formatMoney(item.price)}
+          </span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function createOrderSelectionParams(order: CustomerOrder) {
+  const selectedPriceIds = order.items.reduce<SelectedPriceIds>(
+    (current, item) => {
+      if (isPriceOptionId(item.background)) {
+        current[item.id] = item.background;
+      }
+
+      return current;
+    },
+    {},
+  );
+
+  return createSelectionSearchParams(
+    order.items.map((item) => item.id),
+    selectedPriceIds,
+  );
+}
+
+function isPriceOptionId(value: string): value is PriceOptionId {
+  return value === "blanco" || value === "arpillera" || value === "base";
+}
+
+function formatMoney(value: number) {
+  return `$${value.toLocaleString("es-AR")}`;
+}
+
+function formatOrderDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Sin fecha";
+  }
+
+  return new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getShortOrderId(id: string) {
+  return id.slice(0, 8).toUpperCase();
 }

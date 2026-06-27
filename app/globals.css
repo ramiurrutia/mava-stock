@@ -46,6 +46,46 @@ body {
   -webkit-print-color-adjust: exact;
 }
 
+.catalog-panel {
+  animation: catalog-panel-in 220ms ease-out both;
+}
+
+.checkout-floating-cta {
+  animation: checkout-floating-cta 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes catalog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes checkout-floating-cta {
+  0%,
+  100% {
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32);
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.38);
+    transform: translateY(-4px) scale(1.025);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-floating-cta {
+    animation: none;
+  }
+}
+
 @media print {
   @page {
     margin: 12mm;

@@ -38,6 +38,9 @@ export type ProductThemeId =
   | "vehiculos";
 export type PriceOptionId = "blanco" | "arpillera" | "base";
 export type SelectedPriceIds = Record<string, PriceOptionId | undefined>;
+type SelectionSearchParams = {
+  get(name: string): string | null;
+};
 
 export type ProductPriceOption = {
   id: PriceOptionId;
@@ -165,7 +168,7 @@ export const productThemes = [
 export const productFolders = [
   {
     id: "extra-grandes",
-    label: "Extra grandes",
+    label: "Extragrandes",
     description: "SGF / SG",
     measures: [
       {
@@ -226,7 +229,16 @@ export const productFolders = [
       },
     ],
   },
-] as const;
+] as const satisfies readonly {
+  id: ProductFolderId;
+  label: string;
+  description: string;
+  measures: readonly {
+    code: ProductMeasureCode;
+    label: string;
+    size: string;
+  }[];
+}[];
 
 export function getProductPriceOptions(product: Pick<Product, "measureCode">) {
   return priceOptionsByMeasureCode[product.measureCode];
@@ -305,6 +317,102 @@ export function serializeSelectedPriceIds(
     .join(",");
 }
 
+const compactSelectionParam = "s";
+
+const compactPriceCodeById: Record<PriceOptionId, string> = {
+  arpillera: "a",
+  base: "p",
+  blanco: "b",
+};
+
+const priceIdByCompactCode = Object.fromEntries(
+  Object.entries(compactPriceCodeById).map(([priceId, code]) => [
+    code,
+    priceId,
+  ]),
+) as Record<string, PriceOptionId>;
+
+function parseSelectedIds(value?: string | null) {
+  return (
+    value
+      ?.split(",")
+      .map((id) => id.trim())
+      .filter(Boolean) ?? []
+  );
+}
+
+export function serializeSelectionParams(
+  selectedIds: string[],
+  selectedPriceIds: SelectedPriceIds,
+) {
+  return selectedIds
+    .map((id) => {
+      const priceId = selectedPriceIds[id];
+      const priceCode = priceId ? compactPriceCodeById[priceId] : "";
+
+      return priceCode ? `${id}.${priceCode}` : id;
+    })
+    .join("_");
+}
+
+export function createSelectionSearchParams(
+  selectedIds: string[],
+  selectedPriceIds: SelectedPriceIds,
+) {
+  const params = new URLSearchParams();
+  const compactSelection = serializeSelectionParams(
+    selectedIds,
+    selectedPriceIds,
+  );
+
+  if (compactSelection) {
+    params.set(compactSelectionParam, compactSelection);
+  }
+
+  return params;
+}
+
+export function parseSelectionParams(searchParams: SelectionSearchParams) {
+  const compactSelection = searchParams.get(compactSelectionParam);
+
+  if (compactSelection) {
+    return compactSelection
+      .split("_")
+      .filter(Boolean)
+      .reduce(
+        (current, item) => {
+          const separatorIndex = item.lastIndexOf(".");
+          const productId =
+            separatorIndex > -1 ? item.slice(0, separatorIndex) : item;
+          const priceCode =
+            separatorIndex > -1 ? item.slice(separatorIndex + 1) : "";
+          const priceId = priceIdByCompactCode[priceCode];
+
+          if (productId) {
+            current.ids.push(productId);
+
+            if (priceId) {
+              current.selectedPriceIds[productId] = priceId;
+            }
+          }
+
+          return current;
+        },
+        {
+          ids: [] as string[],
+          selectedPriceIds: {} as SelectedPriceIds,
+        },
+      );
+  }
+
+  const ids = parseSelectedIds(searchParams.get("ids"));
+
+  return {
+    ids,
+    selectedPriceIds: parseSelectedPriceIds(searchParams.get("prices")),
+  };
+}
+
 const measureSizeByCode: Record<ProductMeasureCode, string> = {
   XG: "85 x 115",
   SGF: "185 x 85",
@@ -338,15 +446,16 @@ const measureLabelByCode: Record<ProductMeasureCode, string> = {
   TEXTURADO: "TEXTURADOS",
 };
 
-const folderIdByMeasureCode: Record<ProductMeasureCode, ProductFolderId> = {
-  XG: "grandes",
-  SGF: "extra-grandes",
-  SG: "extra-grandes",
-  DNG: "medianos",
-  TC: "chicos",
-  XGM: "grandes",
-  TEXTURADO: "grandes",
-};
+const folderIdByMeasureCode = productFolders.reduce(
+  (current, folder) => {
+    folder.measures.forEach((measure) => {
+      current[measure.code] = folder.id;
+    });
+
+    return current;
+  },
+  {} as Record<ProductMeasureCode, ProductFolderId>,
+);
 
 const themeLabelById = Object.fromEntries(
   productThemes.map((theme) => [theme.id, theme.label]),

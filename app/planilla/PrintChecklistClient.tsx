@@ -9,32 +9,19 @@ import {
   useLocalStock,
 } from "@/components/useAdminStock";
 import {
+  createSelectionSearchParams,
   findPriceOption,
-  parseSelectedPriceIds,
+  parseSelectionParams,
   type PriceOptionId,
   products,
-  serializeSelectedPriceIds,
 } from "@/data/products";
 
 export function PrintChecklistClient() {
   const searchParams = useSearchParams();
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
-  const ids =
-    searchParams
-      .get("ids")
-      ?.split(",")
-      .map((id) => id.trim())
-      .filter(Boolean) ?? [];
-  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
-  const selectedPriceParam = serializeSelectedPriceIds(ids, selectedPriceIds);
-  const shareParams = new URLSearchParams({
-    ids: ids.join(","),
-  });
-
-  if (selectedPriceParam) {
-    shareParams.set("prices", selectedPriceParam);
-  }
+  const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
+  const shareParams = createSelectionSearchParams(ids, selectedPriceIds);
 
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const selectedProducts = productsWithLocalStock.filter((product) =>

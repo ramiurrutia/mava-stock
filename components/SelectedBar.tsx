@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
+  createSelectionSearchParams,
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
   products,
-  serializeSelectedPriceIds,
   type Product,
   type SelectedPriceIds,
 } from "@/data/products";
@@ -34,17 +34,10 @@ export function SelectedBar({
         (option) => option.id === selectedPriceIds[product.id],
       ),
   ).length;
-  const selectedPriceParam = serializeSelectedPriceIds(
+  const selectionParams = createSelectionSearchParams(
     selectedIds,
     selectedPriceIds,
   );
-  const selectionParams = new URLSearchParams({
-    ids: selectedIds.join(","),
-  });
-
-  if (selectedPriceParam) {
-    selectionParams.set("prices", selectedPriceParam);
-  }
 
   return (
     <div className="fixed inset-x-2 bottom-2 z-50 mx-auto max-w-2xl border border-neutral-950 bg-white p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.28)]">

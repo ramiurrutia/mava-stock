@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FinishedOrderLog } from "@/lib/adminStore";
+import type { CustomerOrder, OrderStatus } from "@/data/orders";
 import type { Product } from "@/data/products";
 
 const adminModeChangeEvent = "mava-admin-mode-change";
@@ -14,7 +14,11 @@ type SessionResponse = {
 };
 
 type OrdersResponse = {
-  orders?: FinishedOrderLog[];
+  orders?: CustomerOrder[];
+};
+
+type OrderResponse = {
+  order?: CustomerOrder;
 };
 
 type StockResponse = {
@@ -243,7 +247,9 @@ export function useLocalStock() {
 }
 
 export function useFinishedOrders() {
-  const [orders, setOrders] = useState<FinishedOrderLog[]>([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [ordersError, setOrdersError] = useState("");
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
 
   useEffect(() => {
     async function refreshOrders() {
@@ -255,11 +261,15 @@ export function useFinishedOrders() {
       });
 
       if (!response.ok) {
+        setOrdersError(
+          await getApiErrorMessage(response, "No se pudieron cargar pedidos"),
+        );
         setOrders([]);
         return;
       }
 
       const data = (await response.json()) as OrdersResponse;
+      setOrdersError("");
       setOrders(Array.isArray(data.orders) ? data.orders : []);
     }
 
@@ -271,5 +281,46 @@ export function useFinishedOrders() {
     };
   }, []);
 
-  return { orders };
+  const updateOrderStatus = useCallback(
+    async (id: string, status: OrderStatus) => {
+      setUpdatingOrderId(id);
+      setOrdersError("");
+
+      try {
+        const response = await fetch("/api/admin/orders", {
+          body: JSON.stringify({ id, status }),
+          headers: getAdminHeaders(),
+          method: "PATCH",
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            await getApiErrorMessage(
+              response,
+              "No se pudo actualizar estado",
+            ),
+          );
+        }
+
+        const data = (await response.json()) as OrderResponse;
+
+        if (data.order) {
+          setOrders((current) =>
+            current.map((order) => (order.id === id ? data.order! : order)),
+          );
+        }
+      } catch (error) {
+        setOrdersError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar estado",
+        );
+      } finally {
+        setUpdatingOrderId("");
+      }
+    },
+    [],
+  );
+
+  return { orders, ordersError, updateOrderStatus, updatingOrderId };
 }

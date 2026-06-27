@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { FramePreview } from "@/components/FramePreview";
@@ -9,25 +10,21 @@ import {
   useLocalStock,
 } from "@/components/useAdminStock";
 import {
+  createSelectionSearchParams,
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
-  parseSelectedPriceIds,
+  parseSelectionParams,
   products,
-  serializeSelectedPriceIds,
   type PriceOptionId,
 } from "@/data/products";
 
 export function SelectionClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [showCheckoutCta, setShowCheckoutCta] = useState(true);
   const { unavailableProductIds } = useLocalStock();
-  const ids = searchParams
-    .get("ids")
-    ?.split(",")
-    .map((id) => id.trim())
-    .filter(Boolean) ?? [];
-  const selectedPriceIds = parseSelectedPriceIds(searchParams.get("prices"));
+  const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
 
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const selectedProducts = productsWithLocalStock.filter((product) =>
@@ -47,22 +44,40 @@ export function SelectionClient() {
     },
   ).length;
 
+  useEffect(() => {
+    function updateCheckoutCtaVisibility() {
+      const checkout = document.getElementById("checkout-form");
+      const checkoutTop =
+        checkout?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const checkoutIsVisible = checkoutTop < window.innerHeight - 80;
+      const isNearPageEnd = documentHeight - scrollBottom < 120;
+
+      setShowCheckoutCta(!checkoutIsVisible && !isNearPageEnd);
+    }
+
+    updateCheckoutCtaVisibility();
+    window.addEventListener("scroll", updateCheckoutCtaVisibility, {
+      passive: true,
+    });
+    window.addEventListener("resize", updateCheckoutCtaVisibility);
+
+    return () => {
+      window.removeEventListener("scroll", updateCheckoutCtaVisibility);
+      window.removeEventListener("resize", updateCheckoutCtaVisibility);
+    };
+  }, [selectedProducts.length]);
+
   function buildSelectionUrl(nextIds: string[]) {
     if (nextIds.length === 0) {
       return "/seleccion";
     }
 
-    const nextParams = new URLSearchParams({
-      ids: nextIds.join(","),
-    });
-    const selectedPriceParam = serializeSelectedPriceIds(
+    const nextParams = createSelectionSearchParams(
       nextIds,
       selectedPriceIds,
     );
-
-    if (selectedPriceParam) {
-      nextParams.set("prices", selectedPriceParam);
-    }
 
     return `/seleccion?${nextParams.toString()}`;
   }
@@ -80,6 +95,12 @@ export function SelectionClient() {
     if (confirmed) {
       router.replace("/seleccion");
     }
+  }
+
+  function scrollToCheckout() {
+    document
+      .getElementById("checkout-form")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -157,7 +178,7 @@ export function SelectionClient() {
               </div>
             </div>
 
-            <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <section className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
               {selectedProducts.map((product) => (
                 <SelectedProductCard
                   key={product.id}
@@ -168,10 +189,30 @@ export function SelectionClient() {
               ))}
             </section>
 
-            <CheckoutForm
-              selectedProducts={selectedProducts}
-              selectedPriceIds={selectedPriceIds}
-            />
+            <section id="checkout-form" className="scroll-mt-4 pb-20 sm:pb-0">
+              <CheckoutForm
+                selectedProducts={selectedProducts}
+                selectedPriceIds={selectedPriceIds}
+              />
+            </section>
+
+            <div
+              className={`pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 transition duration-300 sm:hidden ${
+                showCheckoutCta
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={scrollToCheckout}
+                className={`checkout-floating-cta flex h-12 min-w-[220px] items-center justify-center border-2 border-neutral-950 bg-neutral-950 px-6 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(0,0,0,0.32)] transition active:translate-y-0.5 active:bg-neutral-800 ${
+                  showCheckoutCta ? "pointer-events-auto" : "pointer-events-none"
+                }`}
+              >
+                Finalizar pedido
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -192,10 +233,13 @@ function SelectedProductCard({
 }: SelectedProductCardProps) {
   const isUnavailable = !product.available;
   const priceOptions = getProductPriceOptions(product);
+  const selectedPrice = priceOptions.find(
+    (option) => option.id === selectedPriceId,
+  );
 
   return (
     <article
-      className={`border border-neutral-200 bg-white p-3 shadow-sm ${
+      className={`flex h-full flex-col border border-neutral-200 bg-white p-3 shadow-sm ${
         isUnavailable ? "opacity-45 grayscale" : ""
       }`}
     >
@@ -208,12 +252,12 @@ function SelectedProductCard({
         ) : null}
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 flex flex-1 flex-col gap-2">
         <div>
           <p className="text-xs font-semibold uppercase text-neutral-500">
             {product.code}
           </p>
-          <h2 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
+          <h2 className="mt-1 line-clamp-2 min-h-[38px] text-sm font-semibold leading-snug">
             {product.name}
           </h2>
         </div>
@@ -221,44 +265,24 @@ function SelectedProductCard({
           <p className="leading-tight text-neutral-500">{product.size}</p>
           <p className="text-neutral-500">{product.category}</p>
         </div>
-        <div
-          className={`grid gap-2 text-[11px] ${
-            priceOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {priceOptions.map((option) => {
-            const active = selectedPriceId === option.id;
-
-            return (
-              <div
-                key={option.id}
-                className={`border p-2 ${
-                  active
-                    ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                    : "border-neutral-200"
-                }`}
-              >
-                <p
-                  className={`truncate ${
-                    active ? "text-white/80" : "text-neutral-500"
-                  }`}
-                >
-                  {option.shortLabel}
-                </p>
-                <p className="mt-0.5 font-semibold">{option.price}</p>
-              </div>
-            );
-          })}
-        </div>
-        {!selectedPriceId ? (
-          <p className="text-[11px] font-medium text-neutral-500">
-            Precio sin elegir
+        {selectedPrice ? (
+          <div className="flex min-h-8 items-center justify-between gap-2 border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1.5 text-[11px]">
+            <span className="truncate font-semibold text-[#1f6f65]">
+              {selectedPrice.shortLabel}
+            </span>
+            <span className="shrink-0 font-semibold text-neutral-950">
+              {selectedPrice.price}
+            </span>
+          </div>
+        ) : (
+          <p className="border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-[11px] font-medium text-neutral-500">
+            Sin precio $0
           </p>
-        ) : null}
+        )}
         <button
           type="button"
           onClick={onRemove}
-          className="h-10 w-full border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950"
+          className="mt-auto h-8 w-full border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-800 transition hover:border-neutral-950"
         >
           Quitar
         </button>

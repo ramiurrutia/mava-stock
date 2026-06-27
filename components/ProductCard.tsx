@@ -69,14 +69,13 @@ export function ProductCard({
             <h2 className="line-clamp-2 text-sm font-semibold leading-snug">
               {product.name}
             </h2>
-            <p className="mt-1 truncate text-[11px] font-semibold uppercase text-neutral-500">
-              Codigo {product.code}
+            <p className="truncate text-[11px] uppercase text-neutral-500 font-mono">
+              {product.code}
             </p>
           </div>
 
-          <div className="mt-2 space-y-1 border-t border-neutral-300 pt-2 text-xs">
+          <div className="mt-1 space-y-1 border-t border-neutral-300 pt-2 text-xs">
             <p className="leading-tight text-neutral-500">{product.size}</p>
-            <p className="text-neutral-500">{product.category}</p>
           </div>
         </div>
       </button>
@@ -117,11 +116,6 @@ export function ProductCard({
             );
           })}
         </div>
-        {selected && !selectedPriceId && !isUnavailable ? (
-          <p className="mt-2 text-[11px] font-medium text-neutral-500">
-            Precio sin elegir
-          </p>
-        ) : null}
       </div>
     </article>
   );

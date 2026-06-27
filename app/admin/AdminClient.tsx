@@ -9,6 +9,12 @@ import {
   useFinishedOrders,
   useLocalStock,
 } from "@/components/useAdminStock";
+import {
+  orderStatuses,
+  orderStatusLabels,
+  type CustomerOrder,
+  type OrderStatus,
+} from "@/data/orders";
 import { productFolders, products, type Product } from "@/data/products";
 
 const allStockStates = "todos";
@@ -23,7 +29,8 @@ export function AdminClient() {
     setProductAvailability,
     unavailableProductIds,
   } = useLocalStock();
-  const { orders } = useFinishedOrders();
+  const { orders, ordersError, updateOrderStatus, updatingOrderId } =
+    useFinishedOrders();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -347,10 +354,10 @@ export function AdminClient() {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase text-neutral-500">
-                      Logs
+                      Supabase
                     </p>
                     <h2 className="text-xl font-semibold">
-                      Pedidos terminados
+                      Pedidos recibidos
                     </h2>
                   </div>
                   <p className="text-sm font-semibold text-neutral-500">
@@ -358,51 +365,31 @@ export function AdminClient() {
                   </p>
                 </div>
 
+                {ordersError ? (
+                  <div className="mb-3 border border-red-200 bg-red-50 p-3">
+                    <p className="text-sm font-semibold text-red-700">
+                      {ordersError}
+                    </p>
+                  </div>
+                ) : null}
+
                 {orders.length > 0 ? (
                   <div className="grid gap-3 lg:grid-cols-2">
                     {orders.map((order) => (
-                      <article
+                      <AdminOrderCard
                         key={order.id}
-                        className="border border-neutral-200 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-semibold uppercase text-neutral-500">
-                              {new Intl.DateTimeFormat("es-AR", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              }).format(new Date(order.createdAt))}
-                            </p>
-                            <h3 className="mt-1 text-sm font-semibold">
-                              {order.productCodes.join(", ")}
-                            </h3>
-                          </div>
-                          <span className="shrink-0 text-sm font-semibold text-neutral-950">
-                            {order.productIds.length} cuadros
-                          </span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Link
-                            href={order.sharePath}
-                            className="border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:border-neutral-950"
-                          >
-                            Abrir pedido
-                          </Link>
-                          <Link
-                            href={`/planilla${order.sharePath.includes("?") ? order.sharePath.slice(order.sharePath.indexOf("?")) : ""}`}
-                            target="_blank"
-                            className="bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
-                          >
-                            Planilla
-                          </Link>
-                        </div>
-                      </article>
+                        order={order}
+                        updating={updatingOrderId === order.id}
+                        onStatusChange={(status) =>
+                          updateOrderStatus(order.id, status)
+                        }
+                      />
                     ))}
                   </div>
                 ) : (
                   <div className="border border-dashed border-neutral-300 px-6 py-8 text-center">
                     <p className="text-sm font-medium text-neutral-500">
-                      Todavia no hay pedidos terminados.
+                      Todavia no hay pedidos recibidos.
                     </p>
                   </div>
                 )}
@@ -447,6 +434,144 @@ type SummaryBoxProps = {
   label: string;
   value: number;
 };
+
+type AdminOrderCardProps = {
+  order: CustomerOrder;
+  updating: boolean;
+  onStatusChange: (status: OrderStatus) => Promise<unknown>;
+};
+
+const orderDateFormatter = new Intl.DateTimeFormat("es-AR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+function formatOrderDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Sin fecha";
+  }
+
+  return orderDateFormatter.format(date);
+}
+
+function formatMoney(value: number) {
+  return `$${value.toLocaleString("es-AR")}`;
+}
+
+function getShortOrderId(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function getWhatsappHref(value: string) {
+  const phone = value.replace(/\D/g, "");
+
+  return phone ? `https://wa.me/${phone}` : "";
+}
+
+function AdminOrderCard({
+  order,
+  updating,
+  onStatusChange,
+}: AdminOrderCardProps) {
+  const whatsappHref = getWhatsappHref(order.whatsapp);
+
+  return (
+    <article className="border border-neutral-200 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase text-neutral-500">
+            #{getShortOrderId(order.id)} - {formatOrderDate(order.createdAt)}
+          </p>
+          <h3 className="mt-1 truncate text-base font-semibold">
+            {order.customerName || "Sin nombre"}
+          </h3>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-500">
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-[#1f6f65] underline-offset-4 hover:underline"
+              >
+                {order.whatsapp}
+              </a>
+            ) : (
+              <span>{order.whatsapp || "Sin WhatsApp"}</span>
+            )}
+            {order.businessName ? <span>{order.businessName}</span> : null}
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <span className="inline-flex border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1 text-xs font-semibold text-[#185950]">
+            {orderStatusLabels[order.status]}
+          </span>
+          <p className="mt-2 text-sm font-semibold">
+            {formatMoney(order.total)}
+          </p>
+          <p className="text-xs text-neutral-500">
+            {order.items.length} cuadros
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
+        {order.items.map((item, index) => (
+          <div
+            key={`${item.id}-${index}`}
+            className="grid grid-cols-[1fr_auto] gap-2 border border-neutral-100 px-2 py-1.5 text-xs"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-semibold">
+                {item.code} - {item.name}
+              </p>
+              <p className="truncate text-neutral-500">
+                {item.size} - {item.backgroundLabel}
+              </p>
+            </div>
+            <span className="font-semibold">{formatMoney(item.price)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href={`/compartir?pedido=${encodeURIComponent(order.id)}`}
+          target="_blank"
+          className="border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:border-neutral-950"
+        >
+          Abrir pedido
+        </Link>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+        {orderStatuses.map((status) => {
+          const active = order.status === status.id;
+
+          return (
+            <button
+              key={status.id}
+              type="button"
+              onClick={() => {
+                void onStatusChange(status.id);
+              }}
+              disabled={active || updating}
+              className={`min-h-9 border px-2 text-[11px] font-semibold transition ${
+                active
+                  ? "border-neutral-950 bg-neutral-950 text-white"
+                  : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-950"
+              } disabled:cursor-not-allowed`}
+            >
+              {status.label}
+            </button>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
 
 function SummaryBox({ label, value }: SummaryBoxProps) {
   return (

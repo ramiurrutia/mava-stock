@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
 import {
@@ -14,26 +14,84 @@ import {
   productFolders,
   products,
   type PriceOptionId,
+  type ProductFolderId,
   type SelectedPriceIds,
 } from "@/data/products";
 
-const allFolders = "todas";
+const folderUrlParam = "tamano";
+
+function getCatalogUrl(folderId: ProductFolderId | null) {
+  const url = new URL(window.location.href);
+
+  if (folderId) {
+    url.searchParams.set(folderUrlParam, folderId);
+  } else {
+    url.searchParams.delete(folderUrlParam);
+  }
+
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function getFolderIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const folderId = params.get(folderUrlParam);
+
+  return productFolders.some((folder) => folder.id === folderId)
+    ? (folderId as ProductFolderId)
+    : null;
+}
 
 export default function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [folder, setFolder] = useState(allFolders);
-  const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>({});
+  const [selectedFolderId, setSelectedFolderId] =
+    useState<ProductFolderId | null>(null);
+  const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>(
+    {},
+  );
+  const [search, setSearch] = useState("");
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
 
-  const activeFolder = productFolders.find((item) => item.id === folder);
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const activeFolder = productFolders.find(
+    (item) => item.id === selectedFolderId,
+  );
+  const productsWithLocalStock = applyLocalStock(
+    products,
+    unavailableProductIds,
+  );
+  const normalizedSearch = search.trim().toLowerCase();
 
-  const filteredProducts = productsWithLocalStock.filter((product) => {
-    const matchesFolder = folder === allFolders || product.folderId === folder;
+  const filteredProducts = activeFolder
+    ? productsWithLocalStock.filter((product) => {
+        const matchesFolder = product.folderId === activeFolder.id;
+        const matchesSearch =
+          normalizedSearch.length === 0 ||
+          product.name.toLowerCase().includes(normalizedSearch) ||
+          product.category.toLowerCase().includes(normalizedSearch);
 
-    return matchesFolder;
-  });
+        return matchesFolder && matchesSearch;
+      })
+    : [];
+
+  useEffect(() => {
+    function syncFolderFromUrl() {
+      setSelectedFolderId(getFolderIdFromUrl());
+      setSearch("");
+    }
+
+    syncFolderFromUrl();
+    window.addEventListener("popstate", syncFolderFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", syncFolderFromUrl);
+    };
+  }, []);
+
+  function getFolderProductCount(folderId: ProductFolderId) {
+    return productsWithLocalStock.filter(
+      (product) => product.folderId === folderId,
+    ).length;
+  }
 
   function toggleProduct(id: string) {
     const product = productsWithLocalStock.find((item) => item.id === id);
@@ -74,11 +132,17 @@ export default function Home() {
       return;
     }
 
+    const shouldDeselectProduct = selectedPriceIds[id] === priceId;
+
     setSelectedIds((current) =>
-      current.includes(id) ? current : [...current, id],
+      shouldDeselectProduct
+        ? current.filter((selectedId) => selectedId !== id)
+        : current.includes(id)
+          ? current
+          : [...current, id],
     );
     setSelectedPriceIds((current) => {
-      if (current[id] === priceId) {
+      if (shouldDeselectProduct) {
         const next = { ...current };
         delete next[id];
 
@@ -92,15 +156,17 @@ export default function Home() {
     });
   }
 
-  function clearFilters() {
-    setFolder(allFolders);
+  function selectFolder(folderId: ProductFolderId) {
+    setSelectedFolderId(folderId);
+    setSearch("");
+    window.history.pushState(null, "", getCatalogUrl(folderId));
   }
 
-  function selectFolder(nextFolder: string) {
-    setFolder(nextFolder);
+  function returnToSizes() {
+    setSelectedFolderId(null);
+    setSearch("");
+    window.history.replaceState(null, "", getCatalogUrl(null));
   }
-
-  const hasFilters = folder !== allFolders;
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
@@ -112,7 +178,9 @@ export default function Home() {
                 MAVA CUADROS
               </h1>
               <p className="text-base font-semibold text-[#1f6f65]">
-                Clickeá las imagenes para realizar tu pedido
+                {activeFolder
+                  ? "Clickea las imagenes para realizar tu pedido"
+                  : "Elegi un tamaño para ver los cuadros disponibles"}
               </p>
             </div>
 
@@ -134,135 +202,117 @@ export default function Home() {
               </div>
             ) : null}
           </div>
-
-          <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase text-neutral-500">
-                Carpetas por medidas
-              </p>
-              {activeFolder ? (
-                <p className="hidden text-xs text-neutral-500 sm:block">
-                  {activeFolder.description}
-                </p>
-              ) : null}
-            </div>
-
-            <div
-              role="group"
-              aria-label="Filtrar por carpeta de medidas"
-              className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5"
-            >
-              <button
-                type="button"
-                onClick={() => selectFolder(allFolders)}
-                className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
-                  folder === allFolders
-                    ? "border-neutral-950 bg-neutral-950 text-white"
-                    : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
-                }`}
-              >
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-current opacity-65 sm:text-[11px]">
-                  Todas
-                </span>
-                <span
-                  className={`mt-1 block text-xs font-semibold ${
-                    folder === allFolders ? "text-neutral-200" : "text-neutral-500"
-                  }`}
-                >
-                  Todo el catalogo
-                </span>
-              </button>
-
-              {productFolders.map((item) => {
-                const active = folder === item.id;
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectFolder(item.id)}
-                    className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
-                      active
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
-                    }`}
-                  >
-                    <span
-                      className={`block text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
-                        active ? "text-neutral-300" : "text-neutral-400"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap gap-1">
-                      {item.measures.map((measureOption) => (
-                        <span
-                          key={measureOption.code}
-                          className={`inline-flex min-w-0 items-baseline gap-1 border px-1.5 py-1 leading-none ${
-                            active
-                              ? "border-white/30 bg-white/10 text-white"
-                              : "border-neutral-300 bg-neutral-50 text-neutral-700"
-                          }`}
-                        >
-                          <span className="text-[9px] font-semibold opacity-60">
-                            {measureOption.label}
-                          </span>
-                          <span className="truncate text-[11px] font-semibold">
-                            {measureOption.size}
-                          </span>
-                        </span>
-                      ))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </header>
 
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm text-neutral-500">
-            {filteredProducts.length}{" "}
-            {filteredProducts.length === 1
-              ? "cuadro encontrado"
-              : "cuadros encontrados"}
-            {selectedIds.length > 0 ? ` / ${selectedIds.length} elegidos` : ""}
-          </p>
-
-          {hasFilters ? (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-sm font-semibold text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline"
+        {!activeFolder ? (
+          <section
+            key="size-menu"
+            className="catalog-panel"
+            aria-label="Elegir tamaño del cuadro"
+          >
+            <div
+              role="group"
+              aria-label="Tamaños disponibles"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
-              Ver todos
-            </button>
-          ) : null}
-        </div>
-
-        {filteredProducts.length > 0 ? (
-          <ProductGrid
-            products={filteredProducts}
-            selectedIds={selectedIds}
-            selectedPriceIds={selectedPriceIds}
-            onToggle={toggleProduct}
-            onPriceToggle={toggleProductPrice}
-          />
+              {productFolders.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => selectFolder(item.id)}
+                  className="group min-h-[116px] border border-neutral-300 bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-neutral-950 hover:shadow-md"
+                >
+                  <span className="block text-lg font-semibold leading-tight">
+                    {item.label}
+                  </span>
+                  <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#1f6f65]">
+                    {getFolderProductCount(item.id)} cuadros disponibles
+                  </span>
+                  <span className="mt-4 flex flex-wrap gap-1.5">
+                    {item.measures.map((measure) => (
+                      <span
+                        key={measure.code}
+                        className="border border-neutral-200 bg-neutral-50 px-2 py-1 text-sm font-semibold text-neutral-700 transition group-hover:border-[#1f6f65]/40"
+                      >
+                        <span className="text-neutral-950">
+                          {measure.label}
+                        </span>{" "}
+                        <span className="font-medium text-neutral-500">
+                          {measure.size}
+                        </span>
+                      </span>
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
         ) : (
-          <section className="border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
-            <h2 className="text-lg font-semibold">
-              No hay cuadros en esta carpeta
-            </h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-500">
-              Proba con otra carpeta de medidas.
-            </p>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-6 bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-            >
-              Ver todo el stock
-            </button>
+          <section
+            key={activeFolder.id}
+            className="catalog-panel"
+            aria-label={`Cuadros ${activeFolder.label}`}
+          >
+            <div className="mb-4 grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+              <button
+                type="button"
+                onClick={returnToSizes}
+                className="flex h-11 items-center justify-center border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950 hover:text-neutral-950 sm:justify-start"
+              >
+                ← Volver a tamaños
+              </button>
+
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+                <label htmlFor="catalog-search" className="sr-only">
+                  Buscar cuadros
+                </label>
+                <input
+                  id="catalog-search"
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar por nombre o tematica"
+                  className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-950 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
+                />
+                <p className="text-sm text-neutral-500 sm:text-right">
+                  {filteredProducts.length}{" "}
+                  {filteredProducts.length === 1
+                    ? "cuadro encontrado"
+                    : "cuadros encontrados"}
+                  {selectedIds.length > 0
+                    ? ` / ${selectedIds.length} elegidos`
+                    : ""}
+                </p>
+              </div>
+            </div>
+
+            {filteredProducts.length > 0 ? (
+              <ProductGrid
+                products={filteredProducts}
+                selectedIds={selectedIds}
+                selectedPriceIds={selectedPriceIds}
+                onToggle={toggleProduct}
+                onPriceToggle={toggleProductPrice}
+              />
+            ) : (
+              <section className="border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
+                <h2 className="text-lg font-semibold">
+                  No hay cuadros para mostrar
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-500">
+                  Proba limpiando la busqueda o volviendo a elegir otro tamaño.
+                </p>
+                {search.trim().length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="mt-6 bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                  >
+                    Limpiar busqueda
+                  </button>
+                ) : null}
+              </section>
+            )}
           </section>
         )}
 

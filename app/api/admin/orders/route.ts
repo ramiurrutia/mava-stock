@@ -1,18 +1,35 @@
 import { isAdminRequest } from "@/lib/adminAuth";
 import {
   createFinishedOrder,
-  getFinishedOrders,
   isAdminStoreUnavailableError,
 } from "@/lib/adminStore";
+import {
+  getCustomerOrders,
+  isCustomerOrdersUnavailableError,
+  updateCustomerOrderStatus,
+} from "@/lib/customerOrders";
+import { isOrderStatus } from "@/data/orders";
 
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  return Response.json({
-    orders: await getFinishedOrders(),
-  });
+  try {
+    return Response.json({
+      orders: await getCustomerOrders(),
+    });
+  } catch (error) {
+    if (isCustomerOrdersUnavailableError(error)) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
+
+    console.error(error);
+    return Response.json(
+      { error: "No se pudieron cargar los pedidos" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,6 +82,39 @@ export async function POST(request: Request) {
     console.error(error);
     return Response.json(
       { error: "No se pudo terminar el pedido" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!isAdminRequest(request)) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    id?: unknown;
+    status?: unknown;
+  } | null;
+  const id = typeof body?.id === "string" ? body.id : "";
+  const status = body?.status;
+
+  if (!id || !isOrderStatus(status)) {
+    return Response.json({ error: "Estado invalido" }, { status: 400 });
+  }
+
+  try {
+    return Response.json({
+      order: await updateCustomerOrderStatus(id, status),
+    });
+  } catch (error) {
+    if (isCustomerOrdersUnavailableError(error)) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
+
+    console.error(error);
+    return Response.json(
+      { error: "No se pudo actualizar el estado" },
       { status: 500 },
     );
   }
