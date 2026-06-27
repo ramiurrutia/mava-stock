@@ -17,7 +17,8 @@ type AdminStore = {
 };
 
 const storePath = path.join(process.cwd(), "data", "admin-store.json");
-const remoteStoreKey = "mava-admin-store";
+const supabaseStoreTable = "mava_admin_store";
+const supabaseStoreId = "main";
 
 const defaultStore: AdminStore = {
   unavailableProductIds: [],
@@ -38,16 +39,18 @@ export function isAdminStoreUnavailableError(
 }
 
 function getRemoteStoreConfig() {
-  const url =
-    process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const token =
-    process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 
-  if (!url || !token) {
+  if (!url || !serviceRoleKey) {
     return null;
   }
 
-  return { token, url };
+  return {
+    serviceRoleKey,
+    url: url.replace(/\/$/, ""),
+  };
 }
 
 function normalizeStore(value: unknown): AdminStore {
@@ -67,56 +70,90 @@ function normalizeStore(value: unknown): AdminStore {
   };
 }
 
-async function redisCommand<T>(command: unknown[]): Promise<T> {
+type SupabaseStoreRow = {
+  unavailable_product_ids?: unknown;
+  orders?: unknown;
+};
+
+function normalizeSupabaseStore(row: SupabaseStoreRow | null): AdminStore {
+  if (!row) {
+    return defaultStore;
+  }
+
+  return normalizeStore({
+    orders: row.orders,
+    unavailableProductIds: row.unavailable_product_ids,
+  });
+}
+
+function getSupabaseHeaders(
+  serviceRoleKey: string,
+  extraHeaders: Record<string, string> = {},
+) {
+  const authHeaders: Record<string, string> = serviceRoleKey.startsWith(
+    "sb_secret_",
+  )
+    ? {}
+    : { Authorization: `Bearer ${serviceRoleKey}` };
+
+  return {
+    apikey: serviceRoleKey,
+    "Content-Type": "application/json",
+    ...authHeaders,
+    ...extraHeaders,
+  };
+}
+
+async function fetchSupabase(pathname: string, init: RequestInit = {}) {
   const config = getRemoteStoreConfig();
 
   if (!config) {
     throw new AdminStoreUnavailableError(
-      "Falta configurar almacenamiento para guardar stock en Vercel.",
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en Vercel.",
     );
   }
 
-  const response = await fetch(config.url, {
-    body: JSON.stringify(command),
+  const response = await fetch(`${config.url}/rest/v1/${pathname}`, {
     cache: "no-store",
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      "Content-Type": "application/json",
-    },
-    method: "POST",
+    ...init,
+    headers: getSupabaseHeaders(config.serviceRoleKey, {
+      ...Object.fromEntries(new Headers(init.headers).entries()),
+    }),
   });
 
   if (!response.ok) {
+    const details = await response.text().catch(() => "");
+
     throw new AdminStoreUnavailableError(
-      "No se pudo conectar con el almacenamiento de stock.",
+      details || "No se pudo conectar con Supabase para guardar stock.",
     );
   }
 
-  const data = (await response.json()) as { error?: string; result?: T };
-
-  if (data.error) {
-    throw new AdminStoreUnavailableError(data.error);
-  }
-
-  return data.result as T;
+  return response;
 }
 
 async function readRemoteStore(): Promise<AdminStore> {
-  const value = await redisCommand<string | null>(["GET", remoteStoreKey]);
+  const response = await fetchSupabase(
+    `${supabaseStoreTable}?id=eq.${supabaseStoreId}&select=unavailable_product_ids,orders&limit=1`,
+  );
+  const rows = (await response.json()) as SupabaseStoreRow[];
 
-  if (!value) {
-    return defaultStore;
-  }
-
-  try {
-    return normalizeStore(JSON.parse(value));
-  } catch {
-    return defaultStore;
-  }
+  return normalizeSupabaseStore(rows[0] ?? null);
 }
 
 async function writeRemoteStore(store: AdminStore) {
-  await redisCommand<"OK">(["SET", remoteStoreKey, JSON.stringify(store)]);
+  await fetchSupabase(supabaseStoreTable, {
+    body: JSON.stringify({
+      id: supabaseStoreId,
+      orders: store.orders,
+      unavailable_product_ids: store.unavailableProductIds,
+      updated_at: new Date().toISOString(),
+    }),
+    headers: {
+      Prefer: "resolution=merge-duplicates",
+    },
+    method: "POST",
+  });
 }
 
 async function readStore(): Promise<AdminStore> {
@@ -140,7 +177,7 @@ async function writeStore(store: AdminStore) {
 
   if (process.env.VERCEL) {
     throw new AdminStoreUnavailableError(
-      "Falta configurar KV_REST_API_URL y KV_REST_API_TOKEN en Vercel para guardar stock.",
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en Vercel para guardar stock.",
     );
   }
 

@@ -218,12 +218,12 @@ export function AdminClient() {
                   <div
                     role="group"
                     aria-label="Filtrar stock por carpeta de medidas"
-                    className="grid grid-cols-5 gap-1.5"
+                    className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5"
                   >
                     <button
                       type="button"
                       onClick={() => setFolder(allFolders)}
-                      className={`min-h-14 border px-2 py-2 text-left transition sm:min-h-16 sm:px-3 ${
+                      className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
                         folder === allFolders
                           ? "border-neutral-950 bg-neutral-950 text-white"
                           : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
@@ -251,7 +251,7 @@ export function AdminClient() {
                           key={item.id}
                           type="button"
                           onClick={() => setFolder(item.id)}
-                          className={`min-h-14 border px-2 py-2 text-left transition sm:min-h-16 sm:px-3 ${
+                          className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
                             active
                               ? "border-neutral-950 bg-neutral-950 text-white"
                               : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
@@ -264,17 +264,22 @@ export function AdminClient() {
                           >
                             {item.label}
                           </span>
-                          <span className="mt-1 flex flex-wrap gap-1">
+                          <span className="mt-1.5 flex flex-wrap gap-1">
                             {item.measures.map((measureOption) => (
                               <span
                                 key={measureOption.code}
-                                className={`inline-flex border px-1 py-0.5 text-[9px] font-semibold leading-none sm:px-1.5 sm:text-[10px] ${
+                                className={`inline-flex min-w-0 items-baseline gap-1 border px-1.5 py-1 leading-none ${
                                   active
                                     ? "border-white/30 bg-white/10 text-white"
                                     : "border-neutral-300 bg-neutral-50 text-neutral-700"
                                 }`}
                               >
-                                {measureOption.label} {measureOption.size}
+                                <span className="text-[9px] font-semibold opacity-60">
+                                  {measureOption.label}
+                                </span>
+                                <span className="truncate text-[11px] font-semibold">
+                                  {measureOption.size}
+                                </span>
                               </span>
                             ))}
                           </span>
