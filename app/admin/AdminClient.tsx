@@ -9,9 +9,10 @@ import {
   useFinishedOrders,
   useLocalStock,
 } from "@/components/useAdminStock";
-import { products, type Product } from "@/data/products";
+import { productFolders, products, type Product } from "@/data/products";
 
 const allStockStates = "todos";
+const allFolders = "todas";
 type AdminView = "stock" | "pedidos";
 
 export function AdminClient() {
@@ -27,8 +28,11 @@ export function AdminClient() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [stockState, setStockState] = useState(allStockStates);
+  const [folder, setFolder] = useState(allFolders);
   const [adminView, setAdminView] = useState<AdminView>("stock");
+  const [actionError, setActionError] = useState("");
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const activeFolder = productFolders.find((item) => item.id === folder);
   const normalizedSearch = search.trim().toLowerCase();
   const availableCount = productsWithLocalStock.filter(
     (product) => product.available,
@@ -45,8 +49,9 @@ export function AdminClient() {
       stockState === allStockStates ||
       (stockState === "stock" && product.available) ||
       (stockState === "sin-stock" && !product.available);
+    const matchesFolder = folder === allFolders || product.folderId === folder;
 
-    return matchesSearch && matchesStockState;
+    return matchesSearch && matchesStockState && matchesFolder;
   });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -61,6 +66,18 @@ export function AdminClient() {
 
     setPassword("");
     setError("");
+  }
+
+  async function runStockAction(action: () => Promise<unknown>) {
+    setActionError("");
+
+    try {
+      await action();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "No se pudo actualizar stock",
+      );
+    }
   }
 
   return (
@@ -109,6 +126,14 @@ export function AdminClient() {
                 Podes imprimir, terminar pedidos y administrar el stock manual.
               </p>
             </div>
+
+            {actionError ? (
+              <div className="border border-red-200 bg-red-50 p-3">
+                <p className="text-sm font-semibold text-red-700">
+                  {actionError}
+                </p>
+              </div>
+            ) : null}
 
             <div className="grid gap-3 md:grid-cols-3">
               <SummaryBox label="En stock" value={availableCount} />
@@ -178,14 +203,97 @@ export function AdminClient() {
                   </div>
                 </div>
 
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase text-neutral-500">
+                      Carpetas por medidas
+                    </p>
+                    {activeFolder ? (
+                      <p className="hidden text-xs text-neutral-500 sm:block">
+                        {activeFolder.description}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div
+                    role="group"
+                    aria-label="Filtrar stock por carpeta de medidas"
+                    className="grid grid-cols-5 gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setFolder(allFolders)}
+                      className={`min-h-14 border px-2 py-2 text-left transition sm:min-h-16 sm:px-3 ${
+                        folder === allFolders
+                          ? "border-neutral-950 bg-neutral-950 text-white"
+                          : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
+                      }`}
+                    >
+                      <span className="block text-[10px] font-semibold uppercase tracking-wide text-current opacity-65 sm:text-[11px]">
+                        Todas
+                      </span>
+                      <span
+                        className={`mt-1 block text-xs font-semibold ${
+                          folder === allFolders
+                            ? "text-neutral-200"
+                            : "text-neutral-500"
+                        }`}
+                      >
+                        Todo el catalogo
+                      </span>
+                    </button>
+
+                    {productFolders.map((item) => {
+                      const active = folder === item.id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setFolder(item.id)}
+                          className={`min-h-14 border px-2 py-2 text-left transition sm:min-h-16 sm:px-3 ${
+                            active
+                              ? "border-neutral-950 bg-neutral-950 text-white"
+                              : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
+                          }`}
+                        >
+                          <span
+                            className={`block text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
+                              active ? "text-neutral-300" : "text-neutral-400"
+                            }`}
+                          >
+                            {item.label}
+                          </span>
+                          <span className="mt-1 flex flex-wrap gap-1">
+                            {item.measures.map((measureOption) => (
+                              <span
+                                key={measureOption.code}
+                                className={`inline-flex border px-1 py-0.5 text-[9px] font-semibold leading-none sm:px-1.5 sm:text-[10px] ${
+                                  active
+                                    ? "border-white/30 bg-white/10 text-white"
+                                    : "border-neutral-300 bg-neutral-50 text-neutral-700"
+                                }`}
+                              >
+                                {measureOption.label} {measureOption.size}
+                              </span>
+                            ))}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      markProductsAvailable(
-                        filteredProducts.map((product) => product.id),
-                      )
-                    }
+                    onClick={() => {
+                      void runStockAction(() =>
+                        markProductsAvailable(
+                          filteredProducts.map((product) => product.id),
+                        ),
+                      );
+                    }}
                     disabled={filteredProducts.length === 0}
                     className="h-10 border border-[#1f6f65] bg-white px-4 text-sm font-semibold text-[#185950] transition hover:bg-[#1f6f65] hover:text-white disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
                   >
@@ -193,11 +301,13 @@ export function AdminClient() {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      markProductsUnavailable(
-                        filteredProducts.map((product) => product.id),
-                      )
-                    }
+                    onClick={() => {
+                      void runStockAction(() =>
+                        markProductsUnavailable(
+                          filteredProducts.map((product) => product.id),
+                        ),
+                      );
+                    }}
                     disabled={filteredProducts.length === 0}
                     className="h-10 border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
                   >
@@ -211,7 +321,9 @@ export function AdminClient() {
                       key={product.id}
                       product={product}
                       onAvailabilityChange={(available) =>
-                        setProductAvailability(product.id, available)
+                        runStockAction(() =>
+                          setProductAvailability(product.id, available),
+                        )
                       }
                     />
                   ))}
@@ -342,7 +454,7 @@ function SummaryBox({ label, value }: SummaryBoxProps) {
 
 type AdminProductCardProps = {
   product: Product;
-  onAvailabilityChange: (available: boolean) => void;
+  onAvailabilityChange: (available: boolean) => Promise<unknown>;
 };
 
 function AdminProductCard({
@@ -360,7 +472,7 @@ function AdminProductCard({
       <div className="relative bg-[#efede8] p-2">
         <FramePreview product={product} />
         <span
-          className={`absolute left-3 top-3 px-2 py-1 text-[11px] font-semibold text-white ${
+          className={`absolute left-3 top-3 z-30 px-2 py-1 text-[11px] font-semibold text-white ${
             product.available ? "bg-[#1f6f65]" : "bg-neutral-950"
           }`}
         >
@@ -384,7 +496,9 @@ function AdminProductCard({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => onAvailabilityChange(true)}
+            onClick={() => {
+              void onAvailabilityChange(true);
+            }}
             disabled={product.available}
             className="h-10 border border-[#1f6f65] bg-white px-2 text-xs font-semibold text-[#185950] transition hover:bg-[#1f6f65] hover:text-white disabled:cursor-not-allowed disabled:bg-[#1f6f65] disabled:text-white"
           >
@@ -392,7 +506,9 @@ function AdminProductCard({
           </button>
           <button
             type="button"
-            onClick={() => onAvailabilityChange(false)}
+            onClick={() => {
+              void onAvailabilityChange(false);
+            }}
             disabled={!product.available}
             className="h-10 border border-neutral-950 bg-white px-2 text-xs font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white disabled:cursor-not-allowed disabled:bg-neutral-950 disabled:text-white"
           >

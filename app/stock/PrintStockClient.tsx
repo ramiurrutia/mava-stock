@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FramePreview } from "@/components/FramePreview";
-import { priceOptions, products } from "@/data/products";
+import { getProductPriceOptions, products } from "@/data/products";
 import {
   applyLocalStock,
   useAdminMode,
@@ -102,7 +102,7 @@ export function PrintStockClient() {
                     {product.size}
                   </p>
                   <p className="mt-1 text-[9px] leading-tight text-neutral-600">
-                    {priceOptions
+                    {getProductPriceOptions(product)
                       .map((option) => `${option.shortLabel} ${option.price}`)
                       .join(" / ")}
                   </p>

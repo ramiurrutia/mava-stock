@@ -11,6 +11,7 @@ import {
 import {
   findPriceOption,
   parseSelectedPriceIds,
+  type PriceOptionId,
   products,
   serializeSelectedPriceIds,
 } from "@/data/products";
@@ -127,7 +128,7 @@ export function PrintChecklistClient() {
 type ChecklistProductCardProps = {
   product: (typeof products)[number];
   index: number;
-  selectedPriceId?: Parameters<typeof findPriceOption>[0];
+  selectedPriceId?: PriceOptionId;
 };
 
 function ChecklistProductCard({
@@ -135,7 +136,7 @@ function ChecklistProductCard({
   index,
   selectedPriceId,
 }: ChecklistProductCardProps) {
-  const selectedPrice = findPriceOption(selectedPriceId);
+  const selectedPrice = findPriceOption(product, selectedPriceId);
 
   return (
     <article className="break-inside-avoid border border-neutral-300 p-1.5">

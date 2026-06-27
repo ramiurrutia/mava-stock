@@ -10,9 +10,9 @@ import {
 } from "@/components/useAdminStock";
 import {
   formatPriceTotal,
+  getProductPriceOptions,
   getSelectedPriceTotal,
   parseSelectedPriceIds,
-  priceOptions,
   products,
   serializeSelectedPriceIds,
   type PriceOptionId,
@@ -36,7 +36,15 @@ export function SelectionClient() {
   const selectedProductIds = selectedProducts.map((product) => product.id);
   const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
   const unpricedCount = selectedProductIds.filter(
-    (id) => !selectedPriceIds[id],
+    (id) => {
+      const product = selectedProducts.find((item) => item.id === id);
+
+      return product
+        ? !getProductPriceOptions(product).some(
+            (option) => option.id === selectedPriceIds[id],
+          )
+        : true;
+    },
   ).length;
 
   function buildSelectionUrl(nextIds: string[]) {
@@ -183,6 +191,7 @@ function SelectedProductCard({
   onRemove,
 }: SelectedProductCardProps) {
   const isUnavailable = !product.available;
+  const priceOptions = getProductPriceOptions(product);
 
   return (
     <article
@@ -212,7 +221,11 @@ function SelectedProductCard({
           <p className="leading-tight text-neutral-500">{product.size}</p>
           <p className="text-neutral-500">{product.category}</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
+        <div
+          className={`grid gap-2 text-[11px] ${
+            priceOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
           {priceOptions.map((option) => {
             const active = selectedPriceId === option.id;
 

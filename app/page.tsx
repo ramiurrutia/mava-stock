@@ -10,7 +10,7 @@ import {
   useLocalStock,
 } from "@/components/useAdminStock";
 import {
-  categories,
+  getProductDefaultPriceId,
   productFolders,
   products,
   type PriceOptionId,
@@ -18,15 +18,10 @@ import {
 } from "@/data/products";
 
 const allFolders = "todas";
-const allMeasures = "todas";
-const defaultPriceId: PriceOptionId = "blanco";
 
 export default function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("Todas");
   const [folder, setFolder] = useState(allFolders);
-  const [measure, setMeasure] = useState(allMeasures);
   const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>({});
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
@@ -34,26 +29,10 @@ export default function Home() {
   const activeFolder = productFolders.find((item) => item.id === folder);
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
 
-  const normalizedSearch = search.trim().toLowerCase();
   const filteredProducts = productsWithLocalStock.filter((product) => {
-    const matchesCategory =
-      category === "Todas" || product.category === category;
     const matchesFolder = folder === allFolders || product.folderId === folder;
-    const matchesMeasure =
-      measure === allMeasures || product.measureCode === measure;
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      product.code.toLowerCase().includes(normalizedSearch) ||
-      product.name.toLowerCase().includes(normalizedSearch) ||
-      product.category.toLowerCase().includes(normalizedSearch) ||
-      product.size.toLowerCase().includes(normalizedSearch);
 
-    return (
-      matchesCategory &&
-      matchesFolder &&
-      matchesMeasure &&
-      matchesSearch
-    );
+    return matchesFolder;
   });
 
   function toggleProduct(id: string) {
@@ -79,6 +58,8 @@ export default function Home() {
         return next;
       });
     } else {
+      const defaultPriceId = getProductDefaultPriceId(product);
+
       setSelectedPriceIds((current) => ({
         ...current,
         [id]: defaultPriceId,
@@ -112,27 +93,19 @@ export default function Home() {
   }
 
   function clearFilters() {
-    setSearch("");
-    setCategory("Todas");
     setFolder(allFolders);
-    setMeasure(allMeasures);
   }
 
   function selectFolder(nextFolder: string) {
     setFolder(nextFolder);
-    setMeasure(allMeasures);
   }
 
-  const hasFilters =
-    Boolean(search) ||
-    category !== "Todas" ||
-    folder !== allFolders ||
-    measure !== allMeasures;
+  const hasFilters = folder !== allFolders;
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
-      <div className="mx-auto w-full max-w-7xl px-4 pb-28 pt-4 sm:px-6 lg:px-8">
-        <header className="mb-6 border-b border-neutral-300 pb-5">
+      <div className="mx-auto w-full max-w-7xl px-2.5 pb-24 pt-3 sm:px-4 lg:px-6">
+        <header className="mb-4 border-b border-neutral-300 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase text-neutral-500">
@@ -141,6 +114,9 @@ export default function Home() {
               <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
                 MAVA CUADROS
               </h1>
+              <p className="mt-3 text-base font-semibold text-[#1f6f65]">
+                Clickeá las imagenes para realizar tu pedido
+              </p>
             </div>
 
             {isAdmin ? (
@@ -162,57 +138,7 @@ export default function Home() {
             ) : null}
           </div>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-[360px_1fr] lg:items-start">
-            <div className="relative">
-              <label htmlFor="search" className="sr-only">
-                Buscar cuadro
-              </label>
-              <input
-                id="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar codigo, nombre, medida o tema"
-                className="h-12 w-full border border-neutral-300 bg-white px-4 pr-10 text-sm text-neutral-950 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
-              />
-              {search ? (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label="Borrar busqueda"
-                  className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center bg-neutral-100 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
-                >
-                  x
-                </button>
-              ) : null}
-            </div>
-
-            <div
-              role="group"
-              aria-label="Filtrar por tematica"
-              className="flex gap-2 overflow-x-auto pb-1"
-            >
-              {["Todas", ...categories].map((item) => {
-                const active = category === item;
-
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setCategory(item)}
-                    className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                      active
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-5">
+          <div className="mt-4">
             <div className="mb-2 flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase text-neutral-500">
                 Carpetas por medidas
@@ -227,20 +153,22 @@ export default function Home() {
             <div
               role="group"
               aria-label="Filtrar por carpeta de medidas"
-              className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid grid-cols-5 gap-1.5"
             >
               <button
                 type="button"
                 onClick={() => selectFolder(allFolders)}
-                className={`border p-3 text-left transition ${
+                className={`min-h-16 border px-3 py-2 text-left transition ${
                   folder === allFolders
                     ? "border-neutral-950 bg-neutral-950 text-white"
                     : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
                 }`}
               >
-                <span className="block text-sm font-semibold">Todas</span>
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-current opacity-65 sm:text-[11px]">
+                  Todas
+                </span>
                 <span
-                  className={`mt-1 block text-xs ${
+                  className={`mt-1 block text-xs font-semibold ${
                     folder === allFolders ? "text-neutral-200" : "text-neutral-500"
                   }`}
                 >
@@ -256,77 +184,41 @@ export default function Home() {
                     key={item.id}
                     type="button"
                     onClick={() => selectFolder(item.id)}
-                    className={`border p-3 text-left transition ${
+                  className={`min-h-14 border px-2 py-2 text-left transition sm:min-h-16 sm:px-3 ${
                       active
                         ? "border-neutral-950 bg-neutral-950 text-white"
                         : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
                     }`}
                   >
-                    <span className="block text-sm font-semibold">
-                      {item.label}
-                    </span>
                     <span
-                      className={`mt-1 block text-xs ${
-                        active ? "text-neutral-200" : "text-neutral-500"
+                      className={`block text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
+                        active ? "text-neutral-300" : "text-neutral-400"
                       }`}
                     >
-                      {item.measures
-                        .map((measureOption) =>
-                          `${measureOption.code} ${measureOption.size}`,
-                        )
-                        .join(" / ")}
+                      {item.label}
+                    </span>
+                    <span className="mt-1 flex flex-wrap gap-1">
+                      {item.measures.map((measureOption) => (
+                        <span
+                          key={measureOption.code}
+                          className={`inline-flex border px-1 py-0.5 text-[9px] font-semibold leading-none sm:px-1.5 sm:text-[10px] ${
+                            active
+                              ? "border-white/30 bg-white/10 text-white"
+                              : "border-neutral-300 bg-neutral-50 text-neutral-700"
+                          }`}
+                        >
+                          {measureOption.label} {measureOption.size}
+                        </span>
+                      ))}
                     </span>
                   </button>
                 );
               })}
             </div>
-
-            {activeFolder ? (
-              <div className="mt-3">
-                <p className="mb-2 text-xs font-semibold uppercase text-neutral-500">
-                  Medida
-                </p>
-                <div
-                  role="group"
-                  aria-label="Filtrar por medida"
-                  className="flex gap-2 overflow-x-auto pb-1"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setMeasure(allMeasures)}
-                    className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                      measure === allMeasures
-                        ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                        : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                    }`}
-                  >
-                    Todas
-                  </button>
-                  {activeFolder.measures.map((item) => {
-                    const active = measure === item.code;
-
-                    return (
-                      <button
-                        key={item.code}
-                        type="button"
-                        onClick={() => setMeasure(item.code)}
-                        className={`h-10 shrink-0 border px-4 text-sm font-semibold transition ${
-                          active
-                            ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                            : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950 hover:text-neutral-950"
-                        }`}
-                      >
-                        {item.code} {item.size}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
           </div>
         </header>
 
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-neutral-500">
             {filteredProducts.length}{" "}
             {filteredProducts.length === 1
@@ -355,12 +247,12 @@ export default function Home() {
             onPriceToggle={toggleProductPrice}
           />
         ) : (
-          <section className="border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
+          <section className="border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
             <h2 className="text-lg font-semibold">
-              No encontramos cuadros con esa busqueda
+              No hay cuadros en esta carpeta
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-500">
-              Proba con otro codigo, nombre o tematica.
+              Proba con otra carpeta de medidas.
             </p>
             <button
               type="button"
@@ -373,7 +265,7 @@ export default function Home() {
         )}
 
         {isAdmin ? (
-          <div className="mt-8 flex justify-center gap-4 sm:hidden">
+          <div className="mt-6 flex justify-center gap-4 sm:hidden">
             <Link
               href="/admin"
               className="text-sm font-semibold text-[#185950] underline-offset-4 transition hover:underline"

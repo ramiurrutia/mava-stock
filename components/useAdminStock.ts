@@ -18,6 +18,7 @@ type OrdersResponse = {
 };
 
 type StockResponse = {
+  error?: string;
   unavailableProductIds?: string[];
 };
 
@@ -60,6 +61,14 @@ function getAdminHeaders() {
     "Content-Type": "application/json",
     "x-mava-admin-key": getStoredAdminKey(),
   };
+}
+
+async function getApiErrorMessage(response: Response, fallback: string) {
+  const data = (await response.json().catch(() => null)) as
+    | { error?: unknown }
+    | null;
+
+  return typeof data?.error === "string" ? data.error : fallback;
 }
 
 export function applyLocalStock(
@@ -165,7 +174,9 @@ export function useLocalStock() {
       });
 
       if (!response.ok) {
-        throw new Error("No se pudo actualizar el stock");
+        throw new Error(
+          await getApiErrorMessage(response, "No se pudo actualizar el stock"),
+        );
       }
 
       const data = (await response.json()) as StockResponse;
@@ -204,7 +215,9 @@ export function useLocalStock() {
       });
 
       if (!response.ok) {
-        throw new Error("No se pudo terminar el pedido");
+        throw new Error(
+          await getApiErrorMessage(response, "No se pudo terminar el pedido"),
+        );
       }
 
       const data = (await response.json()) as StockResponse;

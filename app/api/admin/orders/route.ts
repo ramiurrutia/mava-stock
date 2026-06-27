@@ -1,5 +1,9 @@
 import { isAdminRequest } from "@/lib/adminAuth";
-import { createFinishedOrder, getFinishedOrders } from "@/lib/adminStore";
+import {
+  createFinishedOrder,
+  getFinishedOrders,
+  isAdminStoreUnavailableError,
+} from "@/lib/adminStore";
 
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) {
@@ -43,13 +47,25 @@ export async function POST(request: Request) {
     return Response.json({ error: "Sin productos" }, { status: 400 });
   }
 
-  const store = await createFinishedOrder({
-    productIds,
-    productCodes,
-    selectedPriceIds,
-    totalInThousands,
-    sharePath,
-  });
+  try {
+    const store = await createFinishedOrder({
+      productIds,
+      productCodes,
+      selectedPriceIds,
+      totalInThousands,
+      sharePath,
+    });
 
-  return Response.json(store);
+    return Response.json(store);
+  } catch (error) {
+    if (isAdminStoreUnavailableError(error)) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
+
+    console.error(error);
+    return Response.json(
+      { error: "No se pudo terminar el pedido" },
+      { status: 500 },
+    );
+  }
 }

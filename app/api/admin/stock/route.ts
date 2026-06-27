@@ -1,5 +1,9 @@
 import { isAdminRequest } from "@/lib/adminAuth";
-import { getUnavailableProductIds, setProductsAvailability } from "@/lib/adminStore";
+import {
+  getUnavailableProductIds,
+  isAdminStoreUnavailableError,
+  setProductsAvailability,
+} from "@/lib/adminStore";
 
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) {
@@ -29,7 +33,22 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Sin productos" }, { status: 400 });
   }
 
-  return Response.json({
-    unavailableProductIds: await setProductsAvailability(productIds, available),
-  });
+  try {
+    return Response.json({
+      unavailableProductIds: await setProductsAvailability(
+        productIds,
+        available,
+      ),
+    });
+  } catch (error) {
+    if (isAdminStoreUnavailableError(error)) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
+
+    console.error(error);
+    return Response.json(
+      { error: "No se pudo actualizar el stock" },
+      { status: 500 },
+    );
+  }
 }

@@ -11,9 +11,9 @@ import {
 } from "@/components/useAdminStock";
 import {
   formatPriceTotal,
+  getProductPriceOptions,
   getSelectedPriceTotal,
   parseSelectedPriceIds,
-  priceOptions,
   products,
   serializeSelectedPriceIds,
 } from "@/data/products";
@@ -23,6 +23,7 @@ export function ShareSelectionClient() {
   const { isAdmin } = useAdminMode();
   const { createFinishedOrder, unavailableProductIds } = useLocalStock();
   const [finishingOrder, setFinishingOrder] = useState(false);
+  const [finishError, setFinishError] = useState("");
   const ids =
     searchParams
       .get("ids")
@@ -49,7 +50,15 @@ export function ShareSelectionClient() {
     .join(", ");
   const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
   const unpricedCount = selectedProductIds.filter(
-    (id) => !selectedPriceIds[id],
+    (id) => {
+      const product = selectedProducts.find((item) => item.id === id);
+
+      return product
+        ? !getProductPriceOptions(product).some(
+            (option) => option.id === selectedPriceIds[id],
+          )
+        : true;
+    },
   ).length;
   const finishedOrder =
     selectedProducts.length > 0 &&
@@ -62,6 +71,7 @@ export function ShareSelectionClient() {
 
     if (confirmed) {
       setFinishingOrder(true);
+      setFinishError("");
 
       try {
         await createFinishedOrder({
@@ -71,6 +81,10 @@ export function ShareSelectionClient() {
           sharePath: `/compartir?${checklistParams.toString()}`,
           totalInThousands: totalPrice,
         });
+      } catch (error) {
+        setFinishError(
+          error instanceof Error ? error.message : "No se pudo terminar pedido",
+        );
       } finally {
         setFinishingOrder(false);
       }
@@ -125,6 +139,14 @@ export function ShareSelectionClient() {
             </Link>
           </div>
         </header>
+
+        {finishError ? (
+          <div className="mb-4 border border-red-200 bg-red-50 p-3">
+            <p className="text-sm font-semibold text-red-700">
+              {finishError}
+            </p>
+          </div>
+        ) : null}
 
         {selectedProducts.length === 0 ? (
           <section className="border border-neutral-200 bg-white px-6 py-14 text-center shadow-sm">
@@ -199,8 +221,14 @@ export function ShareSelectionClient() {
                       </p>
                       <p className="text-neutral-500">{product.category}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      {priceOptions.map((option) => {
+                    <div
+                      className={`grid gap-2 text-[11px] ${
+                        getProductPriceOptions(product).length === 1
+                          ? "grid-cols-1"
+                          : "grid-cols-2"
+                      }`}
+                    >
+                      {getProductPriceOptions(product).map((option) => {
                         const active = selectedPriceIds[product.id] === option.id;
 
                         return (

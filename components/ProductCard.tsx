@@ -1,6 +1,10 @@
 "use client";
 
-import { priceOptions, type PriceOptionId, type Product } from "@/data/products";
+import {
+  getProductPriceOptions,
+  type PriceOptionId,
+  type Product,
+} from "@/data/products";
 import { FramePreview } from "@/components/FramePreview";
 
 type ProductCardProps = {
@@ -19,6 +23,7 @@ export function ProductCard({
   onPriceToggle,
 }: ProductCardProps) {
   const isUnavailable = !product.available;
+  const priceOptions = getProductPriceOptions(product);
 
   return (
     <article
@@ -39,7 +44,7 @@ export function ProductCard({
         onClick={onToggle}
         className="block w-full text-left disabled:cursor-not-allowed"
       >
-        <div className="relative isolate bg-[#efede8] p-2">
+        <div className="relative isolate bg-[#efede8] p-1.5">
           <FramePreview product={product} selectedPriceId={selectedPriceId} />
 
           {selected ? (
@@ -59,7 +64,7 @@ export function ProductCard({
           ) : null}
         </div>
 
-        <div className="p-3 pb-0">
+        <div className="p-2 pb-0">
           <div className="min-w-0">
             <h2 className="line-clamp-2 text-sm font-semibold leading-snug">
               {product.name}
@@ -69,15 +74,19 @@ export function ProductCard({
             </p>
           </div>
 
-          <div className="mt-2 space-y-1 border-t border-neutral-300 pt-3 text-xs">
+          <div className="mt-2 space-y-1 border-t border-neutral-300 pt-2 text-xs">
             <p className="leading-tight text-neutral-500">{product.size}</p>
             <p className="text-neutral-500">{product.category}</p>
           </div>
         </div>
       </button>
 
-      <div className="p-3 pt-2">
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
+      <div className="p-2 pt-2">
+        <div
+          className={`grid gap-2 text-[11px] ${
+            priceOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
           {priceOptions.map((option) => {
             const active = selectedPriceId === option.id;
 
@@ -88,7 +97,7 @@ export function ProductCard({
                 disabled={isUnavailable}
                 aria-pressed={active}
                 onClick={() => onPriceToggle(option.id)}
-                className={`border p-2 text-left transition disabled:cursor-not-allowed ${
+                className={`border p-1.5 text-left transition disabled:cursor-not-allowed ${
                   active
                     ? "border-[#1f6f65] bg-[#1f6f65] text-white"
                     : "border-neutral-200 bg-white/70 text-neutral-950 hover:border-[#1f6f65]"
