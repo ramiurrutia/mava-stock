@@ -59,10 +59,13 @@ export default function Home() {
     products,
     unavailableProductIds,
   );
+  const customerVisibleProducts = isAdmin
+    ? productsWithLocalStock
+    : productsWithLocalStock.filter((product) => product.available);
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = activeFolder
-    ? productsWithLocalStock.filter((product) => {
+    ? customerVisibleProducts.filter((product) => {
         const matchesFolder = product.folderId === activeFolder.id;
         const matchesSearch =
           normalizedSearch.length === 0 ||
@@ -88,7 +91,7 @@ export default function Home() {
   }, []);
 
   function getFolderProductCount(folderId: ProductFolderId) {
-    return productsWithLocalStock.filter(
+    return customerVisibleProducts.filter(
       (product) => product.folderId === folderId,
     ).length;
   }
@@ -220,7 +223,7 @@ export default function Home() {
                   key={item.id}
                   type="button"
                   onClick={() => selectFolder(item.id)}
-                  className="group min-h-[116px] border border-neutral-300 bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-neutral-950 hover:shadow-md"
+                  className="group min-h-29 border border-neutral-300 bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-neutral-950 hover:shadow-md"
                 >
                   <span className="block text-lg font-semibold leading-tight">
                     {item.label}

@@ -1,6 +1,294 @@
 {
   "products": [
     {
+      "code": "XGM-001",
+      "fileName": "XGM-001.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 001",
+      "originalFileName": "XGM-001.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-001.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-002",
+      "fileName": "XGM-002.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 002",
+      "originalFileName": "XGM-002.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-002.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-003",
+      "fileName": "XGM-003.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 003",
+      "originalFileName": "XGM-003.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-003.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-004",
+      "fileName": "XGM-004.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 004",
+      "originalFileName": "XGM-004.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-004.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-005",
+      "fileName": "XGM-005.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 005",
+      "originalFileName": "XGM-005.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-005.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-006",
+      "fileName": "XGM-006.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 006",
+      "originalFileName": "XGM-006.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-006.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-007",
+      "fileName": "XGM-007.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 007",
+      "originalFileName": "XGM-007.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-007.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-008",
+      "fileName": "XGM-008.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 008",
+      "originalFileName": "XGM-008.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-008.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-009",
+      "fileName": "XGM-009.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 009",
+      "originalFileName": "XGM-009.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-009.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-010",
+      "fileName": "XGM-010.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 010",
+      "originalFileName": "XGM-010.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-010.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-011",
+      "fileName": "XGM-011.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 011",
+      "originalFileName": "XGM-011.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-011.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-012",
+      "fileName": "XGM-012.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 012",
+      "originalFileName": "XGM-012.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-012.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-013",
+      "fileName": "XGM-013.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 013",
+      "originalFileName": "XGM-013.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-013.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-014",
+      "fileName": "XGM-014.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 014",
+      "originalFileName": "XGM-014.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-014.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-015",
+      "fileName": "XGM-015.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 015",
+      "originalFileName": "XGM-015.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-015.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-016",
+      "fileName": "XGM-016.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 016",
+      "originalFileName": "XGM-016.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-016.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-017",
+      "fileName": "XGM-017.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 017",
+      "originalFileName": "XGM-017.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-017.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-018",
+      "fileName": "XGM-018.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 018",
+      "originalFileName": "XGM-018.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-018.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-019",
+      "fileName": "XGM-019.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 019",
+      "originalFileName": "XGM-019.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-019.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-020",
+      "fileName": "XGM-020.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 020",
+      "originalFileName": "XGM-020.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-020.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-021",
+      "fileName": "XGM-021.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 021",
+      "originalFileName": "XGM-021.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-021.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-022",
+      "fileName": "XGM-022.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 022",
+      "originalFileName": "XGM-022.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-022.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-023",
+      "fileName": "XGM-023.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 023",
+      "originalFileName": "XGM-023.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-023.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-024",
+      "fileName": "XGM-024.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 024",
+      "originalFileName": "XGM-024.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-024.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-025",
+      "fileName": "XGM-025.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 025",
+      "originalFileName": "XGM-025.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-025.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-026",
+      "fileName": "XGM-026.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 026",
+      "originalFileName": "XGM-026.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-026.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-027",
+      "fileName": "XGM-027.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 027",
+      "originalFileName": "XGM-027.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-027.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-028",
+      "fileName": "XGM-028.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 028",
+      "originalFileName": "XGM-028.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-028.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-029",
+      "fileName": "XGM-029.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 029",
+      "originalFileName": "XGM-029.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-029.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-030",
+      "fileName": "XGM-030.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 030",
+      "originalFileName": "XGM-030.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-030.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-031",
+      "fileName": "XGM-031.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 031",
+      "originalFileName": "XGM-031.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-031.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-032",
+      "fileName": "XGM-032.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 032",
+      "originalFileName": "XGM-032.jpg",
+      "originalPath": "app/sources/images/XGM/XGM-032.jpg",
+      "themeId": "abstracto"
+    },
+    {
       "code": "DNG-001",
       "fileName": "DNG-001.jpg",
       "measureCode": "DNG",
@@ -865,6 +1153,132 @@
       "themeId": "botanico"
     },
     {
+      "code": "DNG-097",
+      "fileName": "DNG-097.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 033",
+      "originalFileName": "DNG-097.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-097.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-098",
+      "fileName": "DNG-098.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 034",
+      "originalFileName": "DNG-098.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-098.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-099",
+      "fileName": "DNG-099.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 035",
+      "originalFileName": "DNG-099.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-099.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-100",
+      "fileName": "DNG-100.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 036",
+      "originalFileName": "DNG-100.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-100.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-101",
+      "fileName": "DNG-101.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 037",
+      "originalFileName": "DNG-101.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-101.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-102",
+      "fileName": "DNG-102.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 038",
+      "originalFileName": "DNG-102.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-102.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-103",
+      "fileName": "DNG-103.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 039",
+      "originalFileName": "DNG-103.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-103.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-104",
+      "fileName": "DNG-104.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 040",
+      "originalFileName": "DNG-104.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-104.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-105",
+      "fileName": "DNG-105.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 041",
+      "originalFileName": "DNG-105.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-105.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-106",
+      "fileName": "DNG-106.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 042",
+      "originalFileName": "DNG-106.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-106.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-107",
+      "fileName": "DNG-107.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 043",
+      "originalFileName": "DNG-107.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-107.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-108",
+      "fileName": "DNG-108.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 044",
+      "originalFileName": "DNG-108.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-108.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-109",
+      "fileName": "DNG-109.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 045",
+      "originalFileName": "DNG-109.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-109.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-110",
+      "fileName": "DNG-110.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 046",
+      "originalFileName": "DNG-110.jpg",
+      "originalPath": "app/sources/images/DNG/DNG-110.jpg",
+      "themeId": "abstracto"
+    },
+    {
       "code": "TC-001",
       "fileName": "TC-001.jpg",
       "measureCode": "TC",
@@ -1393,6 +1807,69 @@
       "name": "Patron terracota 002",
       "originalFileName": "STY-3 30X40 (Copy).jpg",
       "originalPath": "app/sources/images/TC/STY-3 30X40 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-060",
+      "fileName": "TC-060.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 047",
+      "originalFileName": "TC-060.jpg",
+      "originalPath": "app/sources/images/TC/TC-060.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-061",
+      "fileName": "TC-061.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 048",
+      "originalFileName": "TC-061.jpg",
+      "originalPath": "app/sources/images/TC/TC-061.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-062",
+      "fileName": "TC-062.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 049",
+      "originalFileName": "TC-062.jpg",
+      "originalPath": "app/sources/images/TC/TC-062.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-063",
+      "fileName": "TC-063.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 050",
+      "originalFileName": "TC-063.jpg",
+      "originalPath": "app/sources/images/TC/TC-063.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-064",
+      "fileName": "TC-064.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 051",
+      "originalFileName": "TC-064.jpg",
+      "originalPath": "app/sources/images/TC/TC-064.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-065",
+      "fileName": "TC-065.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 052",
+      "originalFileName": "TC-065.jpg",
+      "originalPath": "app/sources/images/TC/TC-065.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "TC-066",
+      "fileName": "TC-066.jpg",
+      "measureCode": "TC",
+      "name": "Abstracto neutro 053",
+      "originalFileName": "TC-066.jpg",
+      "originalPath": "app/sources/images/TC/TC-066.jpg",
       "themeId": "abstracto"
     },
     {
@@ -2459,21 +2936,165 @@
     },
     {
       "code": "XG-119",
-      "fileName": "XG-119.jpg",
-      "measureCode": "XG",
-      "name": "Magnolias blancas 003",
-      "originalFileName": "rol-542 60x90 (Copy).jpg",
-      "originalPath": "app/sources/images/XG/rol-542 60x90 (Copy).jpg",
-      "themeId": "botanico"
-    },
-    {
-      "code": "XG-120",
-      "fileName": "XG-120.jpeg",
+      "fileName": "XG-119.jpeg",
       "measureCode": "XG",
       "name": "Plumeros naturales 006",
       "originalFileName": "xg 50 x 100.jpeg",
       "originalPath": "app/sources/images/XG/xg 50 x 100.jpeg",
       "themeId": "botanico"
+    },
+    {
+      "code": "XG-120",
+      "fileName": "XG-120.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 054",
+      "originalFileName": "XG-120.jpg",
+      "originalPath": "app/sources/images/XG/XG-120.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-121",
+      "fileName": "XG-121.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 055",
+      "originalFileName": "XG-121.jpg",
+      "originalPath": "app/sources/images/XG/XG-121.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-122",
+      "fileName": "XG-122.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 056",
+      "originalFileName": "XG-122.jpg",
+      "originalPath": "app/sources/images/XG/XG-122.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-123",
+      "fileName": "XG-123.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 057",
+      "originalFileName": "XG-123.jpg",
+      "originalPath": "app/sources/images/XG/XG-123.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-124",
+      "fileName": "XG-124.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 058",
+      "originalFileName": "XG-124.jpg",
+      "originalPath": "app/sources/images/XG/XG-124.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-125",
+      "fileName": "XG-125.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 059",
+      "originalFileName": "XG-125.jpg",
+      "originalPath": "app/sources/images/XG/XG-125.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-126",
+      "fileName": "XG-126.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 060",
+      "originalFileName": "XG-126.jpg",
+      "originalPath": "app/sources/images/XG/XG-126.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-127",
+      "fileName": "XG-127.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 061",
+      "originalFileName": "XG-127.jpg",
+      "originalPath": "app/sources/images/XG/XG-127.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-128",
+      "fileName": "XG-128.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 062",
+      "originalFileName": "XG-128.jpg",
+      "originalPath": "app/sources/images/XG/XG-128.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-129",
+      "fileName": "XG-129.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 063",
+      "originalFileName": "XG-129.jpg",
+      "originalPath": "app/sources/images/XG/XG-129.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-130",
+      "fileName": "XG-130.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 064",
+      "originalFileName": "XG-130.jpg",
+      "originalPath": "app/sources/images/XG/XG-130.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-131",
+      "fileName": "XG-131.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 065",
+      "originalFileName": "XG-131.jpg",
+      "originalPath": "app/sources/images/XG/XG-131.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-132",
+      "fileName": "XG-132.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 066",
+      "originalFileName": "XG-132.jpg",
+      "originalPath": "app/sources/images/XG/XG-132.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-133",
+      "fileName": "XG-133.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 067",
+      "originalFileName": "XG-133.jpg",
+      "originalPath": "app/sources/images/XG/XG-133.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-134",
+      "fileName": "XG-134.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 068",
+      "originalFileName": "XG-134.jpg",
+      "originalPath": "app/sources/images/XG/XG-134.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-135",
+      "fileName": "XG-135.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 069",
+      "originalFileName": "XG-135.jpg",
+      "originalPath": "app/sources/images/XG/XG-135.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-136",
+      "fileName": "XG-136.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 070",
+      "originalFileName": "XG-136.jpg",
+      "originalPath": "app/sources/images/XG/XG-136.jpg",
+      "themeId": "abstracto"
     },
     {
       "code": "SGF-001",

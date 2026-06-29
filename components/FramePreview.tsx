@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import burlapLayer from "@/app/sources/layers/ARPILLERA.png";
 import whiteLayer from "@/app/sources/layers/BLANCO.png";
 import {
-  getProductMeasureDimensions,
+  getProductPreviewDimensions,
   type PriceOptionId,
   type Product,
 } from "@/data/products";
@@ -15,7 +15,7 @@ type FramePreviewProps = {
 
 export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
   const frameLayer = selectedPriceId === "arpillera" ? burlapLayer : whiteLayer;
-  const { width, height } = getProductMeasureDimensions(product);
+  const { width, height } = getProductPreviewDimensions(product);
   const aspectRatio = width / height;
   const isPanoramicFrame = aspectRatio > 1.6;
   const useWarmFrame = selectedPriceId !== "blanco";
@@ -44,6 +44,12 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
   const artAreaStyle: CSSProperties = {
     inset: `${verticalInset}% ${horizontalInset}%`,
   };
+  const imageSizes = isPanoramicFrame
+    ? "(min-width: 1280px) 440px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 92vw"
+    : "(min-width: 1280px) 280px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
+  const artSizes = isPanoramicFrame
+    ? "(min-width: 1280px) 400px, (min-width: 1024px) 36vw, (min-width: 640px) 54vw, 84vw"
+    : "(min-width: 1280px) 220px, (min-width: 1024px) 25vw, (min-width: 640px) 38vw, 76vw";
 
   return (
     <div
@@ -63,7 +69,7 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
             src={frameLayer}
             alt=""
             fill
-            sizes="(min-width: 1280px) 280px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            sizes={imageSizes}
             className="h-full w-full object-fill"
             aria-hidden="true"
             priority
@@ -82,7 +88,7 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
           src={product.image}
           alt=""
           fill
-          sizes="(min-width: 1280px) 220px, (min-width: 1024px) 25vw, (min-width: 640px) 38vw, 76vw"
+          sizes={artSizes}
           className="h-full w-full object-cover"
           aria-hidden="true"
         />

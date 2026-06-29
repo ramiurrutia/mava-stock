@@ -28,7 +28,7 @@ export function SelectionClient() {
 
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const selectedProducts = productsWithLocalStock.filter((product) =>
-    ids.includes(product.id),
+    ids.includes(product.id) && product.available,
   );
   const selectedProductIds = selectedProducts.map((product) => product.id);
   const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
@@ -231,25 +231,15 @@ function SelectedProductCard({
   selectedPriceId,
   onRemove,
 }: SelectedProductCardProps) {
-  const isUnavailable = !product.available;
   const priceOptions = getProductPriceOptions(product);
   const selectedPrice = priceOptions.find(
     (option) => option.id === selectedPriceId,
   );
 
   return (
-    <article
-      className={`flex h-full flex-col border border-neutral-200 bg-white p-3 shadow-sm ${
-        isUnavailable ? "opacity-45 grayscale" : ""
-      }`}
-    >
+    <article className="flex h-full flex-col border border-neutral-200 bg-white p-3 shadow-sm">
       <div className="relative bg-[#efede8] p-2">
         <FramePreview product={product} selectedPriceId={selectedPriceId} />
-        {isUnavailable ? (
-          <span className="absolute left-3 top-3 bg-neutral-950 px-2 py-1 text-[11px] font-semibold text-white">
-            Sin stock
-          </span>
-        ) : null}
       </div>
 
       <div className="mt-3 flex flex-1 flex-col gap-2">

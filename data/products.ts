@@ -196,12 +196,12 @@ export const productFolders = [
       {
         code: "XG",
         label: "XG",
-        size: "85 x 115",
+        size: "115 x 75",
       },
       {
         code: "XGM",
         label: "XGM",
-        size: "73 x 103",
+        size: "103 x 73",
       },
     ],
   },
@@ -261,6 +261,32 @@ export function getProductMeasureDimensions(
   product: Pick<Product, "measureCode">,
 ) {
   return measureDimensionsByCode[product.measureCode];
+}
+
+export function isProductLandscape(
+  product: Pick<Product, "image">,
+) {
+  return product.image.width > product.image.height * 1.1;
+}
+
+export function getProductPreviewDimensions(
+  product: Pick<Product, "image" | "measureCode">,
+) {
+  const dimensions = getProductMeasureDimensions(product);
+  const isLandscapeMeasure = dimensions.width > dimensions.height;
+  const isPortraitImage = product.image.height > product.image.width * 1.1;
+  const shouldRotateDimensions =
+    (isProductLandscape(product) && !isLandscapeMeasure) ||
+    (isPortraitImage && isLandscapeMeasure);
+
+  if (shouldRotateDimensions) {
+    return {
+      width: dimensions.height,
+      height: dimensions.width,
+    };
+  }
+
+  return dimensions;
 }
 
 export function formatPriceTotal(amountInThousands: number) {
@@ -414,12 +440,12 @@ export function parseSelectionParams(searchParams: SelectionSearchParams) {
 }
 
 const measureSizeByCode: Record<ProductMeasureCode, string> = {
-  XG: "85 x 115",
+  XG: "115 x 75",
   SGF: "185 x 85",
   SG: "124 x 184",
   DNG: "64 x 84",
   TC: "42 x 52",
-  XGM: "73 x 103",
+  XGM: "103 x 73",
   TEXTURADO: "85 x 85",
 };
 
@@ -427,12 +453,12 @@ const measureDimensionsByCode: Record<
   ProductMeasureCode,
   { width: number; height: number }
 > = {
-  XG: { width: 85, height: 115 },
+  XG: { width: 115, height: 75 },
   SGF: { width: 185, height: 85 },
   SG: { width: 124, height: 184 },
   DNG: { width: 64, height: 84 },
   TC: { width: 42, height: 52 },
-  XGM: { width: 73, height: 103 },
+  XGM: { width: 103, height: 73 },
   TEXTURADO: { width: 85, height: 85 },
 };
 
