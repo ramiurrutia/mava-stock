@@ -44,6 +44,7 @@ export function AdminClient() {
   const [folder, setFolder] = useState(allFolders);
   const [adminView, setAdminView] = useState<AdminView>("stock");
   const [actionError, setActionError] = useState("");
+  const [stockingOrderId, setStockingOrderId] = useState("");
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const activeFolder = productFolders.find((item) => item.id === folder);
   const normalizedSearch = search.trim().toLowerCase();
@@ -90,6 +91,24 @@ export function AdminClient() {
       setActionError(
         error instanceof Error ? error.message : "No se pudo actualizar stock",
       );
+    }
+  }
+
+  async function removeOrderFromStock(order: CustomerOrder) {
+    const productIds = Array.from(
+      new Set(order.items.map((item) => item.id).filter(Boolean)),
+    );
+
+    if (productIds.length === 0) {
+      return;
+    }
+
+    setStockingOrderId(order.id);
+
+    try {
+      await runStockAction(() => markProductsUnavailable(productIds));
+    } finally {
+      setStockingOrderId("");
     }
   }
 
@@ -388,8 +407,10 @@ export function AdminClient() {
                         key={order.id}
                         order={order}
                         deleting={deletingOrderId === order.id}
+                        removingFromStock={stockingOrderId === order.id}
                         updating={updatingOrderId === order.id}
                         onDelete={() => deleteOrder(order.id)}
+                        onRemoveFromStock={() => removeOrderFromStock(order)}
                         onStatusChange={(status) =>
                           updateOrderStatus(order.id, status)
                         }
@@ -463,6 +484,8 @@ type AdminOrderCardProps = {
   deleting: boolean;
   order: CustomerOrder;
   onDelete: () => Promise<unknown>;
+  onRemoveFromStock: () => Promise<unknown>;
+  removingFromStock: boolean;
   updating: boolean;
   onStatusChange: (status: OrderStatus) => Promise<unknown>;
 };
@@ -500,6 +523,8 @@ function AdminOrderCard({
   deleting,
   order,
   onDelete,
+  onRemoveFromStock,
+  removingFromStock,
   updating,
   onStatusChange,
 }: AdminOrderCardProps) {
@@ -512,6 +537,16 @@ function AdminOrderCard({
 
     if (confirmed) {
       void onDelete();
+    }
+  }
+
+  function handleRemoveFromStock() {
+    const confirmed = window.confirm(
+      `Vas a marcar sin stock los ${order.items.length} cuadros del pedido #${getShortOrderId(order.id)}. Queres continuar?`,
+    );
+
+    if (confirmed) {
+      void onRemoveFromStock();
     }
   }
 
@@ -591,8 +626,16 @@ function AdminOrderCard({
         </Link>
         <button
           type="button"
+          onClick={handleRemoveFromStock}
+          disabled={deleting || updating || removingFromStock}
+          className="border border-neutral-950 bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
+        >
+          {removingFromStock ? "Sacando..." : "Sacar de stock"}
+        </button>
+        <button
+          type="button"
           onClick={handleDelete}
-          disabled={deleting || updating}
+          disabled={deleting || updating || removingFromStock}
           className="border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
         >
           {deleting ? "Borrando..." : "Borrar pedido"}

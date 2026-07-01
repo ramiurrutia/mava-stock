@@ -59,13 +59,24 @@ export default function Home() {
     products,
     unavailableProductIds,
   );
-  const customerVisibleProducts = isAdmin
-    ? productsWithLocalStock
-    : productsWithLocalStock.filter((product) => product.available);
+  const catalogVisibleProducts = productsWithLocalStock.filter(
+    (product) => product.available,
+  );
+  const catalogVisibleProductIds = new Set(
+    catalogVisibleProducts.map((product) => product.id),
+  );
+  const visibleSelectedIds = selectedIds.filter((id) =>
+    catalogVisibleProductIds.has(id),
+  );
+  const visibleSelectedPriceIds = Object.fromEntries(
+    Object.entries(selectedPriceIds).filter(([id]) =>
+      catalogVisibleProductIds.has(id),
+    ),
+  );
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = activeFolder
-    ? customerVisibleProducts.filter((product) => {
+    ? catalogVisibleProducts.filter((product) => {
         const matchesFolder = product.folderId === activeFolder.id;
         const matchesSearch =
           normalizedSearch.length === 0 ||
@@ -91,7 +102,7 @@ export default function Home() {
   }, []);
 
   function getFolderProductCount(folderId: ProductFolderId) {
-    return customerVisibleProducts.filter(
+    return catalogVisibleProducts.filter(
       (product) => product.folderId === folderId,
     ).length;
   }
@@ -269,8 +280,8 @@ export default function Home() {
             {filteredProducts.length > 0 ? (
               <ProductGrid
                 products={filteredProducts}
-                selectedIds={selectedIds}
-                selectedPriceIds={selectedPriceIds}
+                selectedIds={visibleSelectedIds}
+                selectedPriceIds={visibleSelectedPriceIds}
                 onToggle={toggleProduct}
                 onPriceToggle={toggleProductPrice}
               />
@@ -308,8 +319,8 @@ export default function Home() {
           </div>
         ) : null}
         <SelectedBar
-          selectedIds={selectedIds}
-          selectedPriceIds={selectedPriceIds}
+          selectedIds={visibleSelectedIds}
+          selectedPriceIds={visibleSelectedPriceIds}
           onClear={() => {
             setSelectedIds([]);
             setSelectedPriceIds({});
