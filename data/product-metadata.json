@@ -355,10 +355,10 @@
                          "code":  "XGM-042",
                          "fileName":  "XGM-042.jpg",
                          "measureCode":  "XGM",
-                         "name":  "Abstracto neutro 010",
+                         "name":  "Caballos libres",
                          "originalFileName":  "free horses-70-11 60x90 (Copy).jpg",
                          "originalPath":  "app/sources/images/XGM/free horses-70-11 60x90 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "animales"
                      },
                      {
                          "code":  "XGM-043",
@@ -463,10 +463,10 @@
                          "code":  "XGM-054",
                          "fileName":  "XGM-054.jpg",
                          "measureCode":  "XGM",
-                         "name":  "Abstracto neutro 022",
+                         "name":  "Mapa mundi azul",
                          "originalFileName":  "WORLD MAP BLUE-10 60X90 (Copy).jpg",
                          "originalPath":  "app/sources/images/XGM/WORLD MAP BLUE-10 60X90 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "objetos"
                      },
                      {
                          "code":  "XGM-033",
@@ -508,10 +508,10 @@
                          "code":  "XGM-057",
                          "fileName":  "XGM-057.jpg",
                          "measureCode":  "XGM",
-                         "name":  "Abstracto neutro 003",
+                         "name":  "Camino a la playa 003",
                          "originalFileName":  "movv-10 60x90 (Copy).jpg",
                          "originalPath":  "app/sources/images/XGM/movv-10 60x90 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "paisajes"
                      },
                      {
                          "code":  "XGM-058",
@@ -1795,37 +1795,37 @@
                          "code":  "DNG-129",
                          "fileName":  "DNG-129.jpg",
                          "measureCode":  "DNG",
-                         "name":  "Abstracto neutro 018",
+                         "name":  "Camino a la playa 001",
                          "originalFileName":  "sum beach-5a 50x70 (Copy).jpg",
                          "originalPath":  "app/sources/images/DNG/sum beach-5a 50x70 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "paisajes"
                      },
                      {
                          "code":  "DNG-130",
                          "fileName":  "DNG-130.jpg",
                          "measureCode":  "DNG",
-                         "name":  "Abstracto neutro 019",
+                         "name":  "Camino a la playa 002",
                          "originalFileName":  "sum beach-5b 50x70 (Copy).jpg",
                          "originalPath":  "app/sources/images/DNG/sum beach-5b 50x70 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "paisajes"
                      },
                      {
                          "code":  "DNG-131",
                          "fileName":  "DNG-131.jpg",
                          "measureCode":  "DNG",
-                         "name":  "Abstracto neutro 020",
+                         "name":  "Dunas costeras 001",
                          "originalFileName":  "zen-Beach-1 50x70 (Copy).jpg",
                          "originalPath":  "app/sources/images/DNG/zen-Beach-1 50x70 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "paisajes"
                      },
                      {
                          "code":  "DNG-132",
                          "fileName":  "DNG-132.jpg",
                          "measureCode":  "DNG",
-                         "name":  "Abstracto neutro 021",
+                         "name":  "Dunas costeras 002",
                          "originalFileName":  "zen-Beach-2 50x70 (Copy).jpg",
                          "originalPath":  "app/sources/images/DNG/zen-Beach-2 50x70 (Copy).jpg",
-                         "themeId":  "abstracto"
+                         "themeId":  "paisajes"
                      },
                      {
                          "code":  "TC-001",
