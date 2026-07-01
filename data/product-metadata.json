@@ -289,6 +289,204 @@
       "themeId": "abstracto"
     },
     {
+      "code": "XGM-033",
+      "fileName": "XGM-033.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 001",
+      "originalFileName": "3066SA.jpg",
+      "originalPath": "app/sources/images/XGM/3066SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-034",
+      "fileName": "XGM-034.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 002",
+      "originalFileName": "3067SA.jpg",
+      "originalPath": "app/sources/images/XGM/3067SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-035",
+      "fileName": "XGM-035.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 003",
+      "originalFileName": "3116SA.jpg",
+      "originalPath": "app/sources/images/XGM/3116SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-036",
+      "fileName": "XGM-036.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 004",
+      "originalFileName": "3121SA.jpg",
+      "originalPath": "app/sources/images/XGM/3121SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-037",
+      "fileName": "XGM-037.jpeg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 005",
+      "originalFileName": "1737625334 60x90 (Copy).jpeg",
+      "originalPath": "app/sources/images/XGM/1737625334 60x90 (Copy).jpeg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-038",
+      "fileName": "XGM-038.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 006",
+      "originalFileName": "bahoo-1 50x70 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/bahoo-1 50x70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-039",
+      "fileName": "XGM-039.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 007",
+      "originalFileName": "bahoo-2 50x70 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/bahoo-2 50x70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-040",
+      "fileName": "XGM-040.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 008",
+      "originalFileName": "BELLE-11 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/BELLE-11 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-041",
+      "fileName": "XGM-041.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 009",
+      "originalFileName": "BELLE-14 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/BELLE-14 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-042",
+      "fileName": "XGM-042.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 010",
+      "originalFileName": "free horses-70-11 60x90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/free horses-70-11 60x90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-043",
+      "fileName": "XGM-043.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 011",
+      "originalFileName": "HAPPY-20 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/HAPPY-20 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-044",
+      "fileName": "XGM-044.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 012",
+      "originalFileName": "HAPPY-21 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/HAPPY-21 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-045",
+      "fileName": "XGM-045.png",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 013",
+      "originalFileName": "lumi- 32 60x90 (Copy).png",
+      "originalPath": "app/sources/images/XGM/lumi- 32 60x90 (Copy).png",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-046",
+      "fileName": "XGM-046.png",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 014",
+      "originalFileName": "lumi-30 60x90 (Copy).png",
+      "originalPath": "app/sources/images/XGM/lumi-30 60x90 (Copy).png",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-047",
+      "fileName": "XGM-047.png",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 015",
+      "originalFileName": "lumi-55 60x90 (Copy).png",
+      "originalPath": "app/sources/images/XGM/lumi-55 60x90 (Copy).png",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-048",
+      "fileName": "XGM-048.png",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 016",
+      "originalFileName": "lumi-56 60x90 (Copy).png",
+      "originalPath": "app/sources/images/XGM/lumi-56 60x90 (Copy).png",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-049",
+      "fileName": "XGM-049.png",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 017",
+      "originalFileName": "lumi-57 60x90 (Copy).png",
+      "originalPath": "app/sources/images/XGM/lumi-57 60x90 (Copy).png",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-050",
+      "fileName": "XGM-050.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 018",
+      "originalFileName": "THEM-10 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/THEM-10 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-051",
+      "fileName": "XGM-051.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 019",
+      "originalFileName": "THEM-11 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/THEM-11 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-052",
+      "fileName": "XGM-052.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 020",
+      "originalFileName": "VERNI-10 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/VERNI-10 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-053",
+      "fileName": "XGM-053.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 021",
+      "originalFileName": "VERNI-11 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/VERNI-11 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XGM-054",
+      "fileName": "XGM-054.jpg",
+      "measureCode": "XGM",
+      "name": "Abstracto neutro 022",
+      "originalFileName": "WORLD MAP BLUE-10 60X90 (Copy).jpg",
+      "originalPath": "app/sources/images/XGM/WORLD MAP BLUE-10 60X90 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
       "code": "DNG-001",
       "fileName": "DNG-001.jpg",
       "measureCode": "DNG",
@@ -1276,6 +1474,96 @@
       "name": "Abstracto neutro 046",
       "originalFileName": "DNG-110.jpg",
       "originalPath": "app/sources/images/DNG/DNG-110.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-111",
+      "fileName": "DNG-111.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 023",
+      "originalFileName": "3128SA.jpg",
+      "originalPath": "app/sources/images/DNG/3128SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-112",
+      "fileName": "DNG-112.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 024",
+      "originalFileName": "3129SA.jpg",
+      "originalPath": "app/sources/images/DNG/3129SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-113",
+      "fileName": "DNG-113.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 025",
+      "originalFileName": "FILI-23 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/FILI-23 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-114",
+      "fileName": "DNG-114.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 026",
+      "originalFileName": "FILI-24 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/FILI-24 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-115",
+      "fileName": "DNG-115.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 027",
+      "originalFileName": "LUXE-15 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/LUXE-15 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-116",
+      "fileName": "DNG-116.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 028",
+      "originalFileName": "LUXE-16 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/LUXE-16 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-117",
+      "fileName": "DNG-117.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 029",
+      "originalFileName": "MINI-10 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/MINI-10 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-118",
+      "fileName": "DNG-118.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 030",
+      "originalFileName": "MINI-11 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/MINI-11 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-119",
+      "fileName": "DNG-119.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 031",
+      "originalFileName": "ROL-411 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/ROL-411 50X70 (Copy).jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "DNG-120",
+      "fileName": "DNG-120.jpg",
+      "measureCode": "DNG",
+      "name": "Abstracto neutro 032",
+      "originalFileName": "ROL-412 50X70 (Copy).jpg",
+      "originalPath": "app/sources/images/DNG/ROL-412 50X70 (Copy).jpg",
       "themeId": "abstracto"
     },
     {
@@ -3094,6 +3382,42 @@
       "name": "Abstracto neutro 070",
       "originalFileName": "XG-136.jpg",
       "originalPath": "app/sources/images/XG/XG-136.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-137",
+      "fileName": "XG-137.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 033",
+      "originalFileName": "3111SA.jpg",
+      "originalPath": "app/sources/images/XG/3111SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-138",
+      "fileName": "XG-138.jpg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 034",
+      "originalFileName": "3112SA.jpg",
+      "originalPath": "app/sources/images/XG/3112SA.jpg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-139",
+      "fileName": "XG-139.jpeg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 035",
+      "originalFileName": "680003101 50x100 (Copy).jpeg",
+      "originalPath": "app/sources/images/XG/680003101 50x100 (Copy).jpeg",
+      "themeId": "abstracto"
+    },
+    {
+      "code": "XG-140",
+      "fileName": "XG-140.jpeg",
+      "measureCode": "XG",
+      "name": "Abstracto neutro 036",
+      "originalFileName": "680003102 50x100 (Copy).jpeg",
+      "originalPath": "app/sources/images/XG/680003102 50x100 (Copy).jpeg",
       "themeId": "abstracto"
     },
     {
