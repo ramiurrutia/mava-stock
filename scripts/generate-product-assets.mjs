@@ -23,6 +23,7 @@ const validThemeIds = new Set([
   "texturas",
   "vehiculos",
 ]);
+const validPriceOptionIds = new Set(["blanco", "arpillera", "base"]);
 
 const folderConfigs = [
   { folder: "XGM", measureCode: "XGM" },
@@ -761,6 +762,28 @@ function readProductMetadata() {
 
 const productMetadataByCode = readProductMetadata();
 
+function isValidPriceOption(option) {
+  return (
+    option &&
+    typeof option === "object" &&
+    validPriceOptionIds.has(option.id) &&
+    typeof option.label === "string" &&
+    typeof option.shortLabel === "string" &&
+    typeof option.price === "string" &&
+    Number.isFinite(option.amountInThousands)
+  );
+}
+
+function readMetadataPriceOptions(metadata) {
+  if (!Array.isArray(metadata?.priceOptions)) {
+    return undefined;
+  }
+
+  const priceOptions = metadata.priceOptions.filter(isValidPriceOption);
+
+  return priceOptions.length > 0 ? priceOptions : undefined;
+}
+
 function normalizeName(value) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -986,6 +1009,7 @@ const assetsWithMetadata = resolvedAssets.map((asset) => {
     ...asset,
     imageName: metadata.name,
     metadataName: metadata.name,
+    priceOptions: readMetadataPriceOptions(metadata),
     themeId: metadata.themeId,
   };
 });
@@ -1039,7 +1063,11 @@ const entries = namedAssets
     image: ${importName},
     measureCode: ${JSON.stringify(asset.measureCode)},
     name: ${JSON.stringify(asset.imageName)},
-    themeId: ${JSON.stringify(asset.themeId)},
+    ${
+      asset.priceOptions
+        ? `priceOptions: ${JSON.stringify(asset.priceOptions)},\n    `
+        : ""
+    }themeId: ${JSON.stringify(asset.themeId)},
   },`;
   })
   .join("\n");
@@ -1052,6 +1080,13 @@ export type ProductAsset = {
   image: StaticImageData;
   measureCode: "XG" | "SGF" | "SG" | "DNG" | "TC" | "XGM" | "TEXTURADO";
   name: string;
+  priceOptions?: readonly {
+    id: "blanco" | "arpillera" | "base";
+    label: string;
+    shortLabel: string;
+    price: string;
+    amountInThousands: number;
+  }[];
   themeId:
     | "abstracto"
     | "animales"

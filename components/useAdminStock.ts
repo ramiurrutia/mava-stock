@@ -67,12 +67,41 @@ function getAdminHeaders() {
   };
 }
 
+function getAdminAuthHeaders() {
+  return {
+    "x-mava-admin-key": getStoredAdminKey(),
+  };
+}
+
 async function getApiErrorMessage(response: Response, fallback: string) {
   const data = (await response.json().catch(() => null)) as
     | { error?: unknown }
     | null;
 
   return typeof data?.error === "string" ? data.error : fallback;
+}
+
+export async function createAdminProduct(formData: FormData) {
+  const response = await fetch("/api/admin/products", {
+    body: formData,
+    headers: getAdminAuthHeaders(),
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await getApiErrorMessage(response, "No se pudo agregar el item"),
+    );
+  }
+
+  return (await response.json()) as {
+    product?: {
+      code: string;
+      fileName: string;
+      measureCode: string;
+      name: string;
+    };
+  };
 }
 
 export function applyLocalStock(

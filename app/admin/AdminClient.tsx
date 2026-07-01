@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
 import {
   applyLocalStock,
+  createAdminProduct,
   useAdminMode,
   useFinishedOrders,
   useLocalStock,
@@ -15,16 +16,75 @@ import {
   type CustomerOrder,
   type OrderStatus,
 } from "@/data/orders";
-import { productFolders, products, type Product } from "@/data/products";
+import {
+  productFolders,
+  productThemes,
+  products,
+  type Product,
+  type ProductMeasureCode,
+} from "@/data/products";
 
 const allStockStates = "todos";
 const allFolders = "todas";
 type AdminView = "stock" | "pedidos";
+type NewProductPriceMode = "base" | "blanco" | "arpillera" | "ambos";
+
+const defaultNewProductMeasureCode: ProductMeasureCode = "XG";
+const defaultNewProductPriceMode: NewProductPriceMode = "ambos";
+const newProductMeasureOptions = productFolders.flatMap((folder) =>
+  folder.measures.map((measure) => ({
+    ...measure,
+    folderLabel: folder.label,
+  })),
+);
+const defaultPricesByMeasureCode: Record<
+  ProductMeasureCode,
+  {
+    arpillera: string;
+    base: string;
+    blanco: string;
+  }
+> = {
+  DNG: {
+    arpillera: "95",
+    base: "87",
+    blanco: "87",
+  },
+  SG: {
+    arpillera: "320",
+    base: "320",
+    blanco: "320",
+  },
+  SGF: {
+    arpillera: "249",
+    base: "249",
+    blanco: "249",
+  },
+  TC: {
+    arpillera: "45",
+    base: "45",
+    blanco: "45",
+  },
+  TEXTURADO: {
+    arpillera: "165",
+    base: "165",
+    blanco: "165",
+  },
+  XG: {
+    arpillera: "142",
+    base: "129",
+    blanco: "129",
+  },
+  XGM: {
+    arpillera: "142",
+    base: "129",
+    blanco: "129",
+  },
+};
 
 export function AdminClient() {
   const { checkingAdmin, isAdmin, loginAdmin, logoutAdmin } = useAdminMode();
   const {
-    markProductsAvailable,
     markProductsUnavailable,
     setProductAvailability,
     unavailableProductIds,
@@ -45,6 +105,13 @@ export function AdminClient() {
   const [adminView, setAdminView] = useState<AdminView>("stock");
   const [actionError, setActionError] = useState("");
   const [stockingOrderId, setStockingOrderId] = useState("");
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [addProductMessage, setAddProductMessage] = useState("");
+  const [newProductMeasureCode, setNewProductMeasureCode] =
+    useState<ProductMeasureCode>(defaultNewProductMeasureCode);
+  const [newProductPriceMode, setNewProductPriceMode] =
+    useState<NewProductPriceMode>(defaultNewProductPriceMode);
   const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
   const activeFolder = productFolders.find((item) => item.id === folder);
   const normalizedSearch = search.trim().toLowerCase();
@@ -109,6 +176,33 @@ export function AdminClient() {
       await runStockAction(() => markProductsUnavailable(productIds));
     } finally {
       setStockingOrderId("");
+    }
+  }
+
+  async function handleAddProduct(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionError("");
+    setAddProductMessage("");
+    setAddingProduct(true);
+
+    try {
+      const response = await createAdminProduct(
+        new FormData(event.currentTarget),
+      );
+      const code = response.product?.code ?? "nuevo item";
+
+      event.currentTarget.reset();
+      setNewProductMeasureCode(defaultNewProductMeasureCode);
+      setNewProductPriceMode(defaultNewProductPriceMode);
+      setAddProductMessage(
+        `Se agrego ${code}. Si no aparece enseguida, recarga la pagina.`,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "No se pudo agregar el item",
+      );
+    } finally {
+      setAddingProduct(false);
     }
   }
 
@@ -201,6 +295,18 @@ export function AdminClient() {
 
             {adminView === "stock" ? (
               <>
+                <AddProductPanel
+                  adding={addingProduct}
+                  message={addProductMessage}
+                  measureCode={newProductMeasureCode}
+                  onMeasureCodeChange={setNewProductMeasureCode}
+                  onOpenChange={setAddProductOpen}
+                  onPriceModeChange={setNewProductPriceMode}
+                  onSubmit={handleAddProduct}
+                  open={addProductOpen}
+                  priceMode={newProductPriceMode}
+                />
+
                 <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="space-y-2 text-sm font-semibold text-neutral-700">
                     Buscar cuadro
@@ -257,7 +363,7 @@ export function AdminClient() {
                     <button
                       type="button"
                       onClick={() => setFolder(allFolders)}
-                      className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
+                      className={`min-h-18 min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
                         folder === allFolders
                           ? "border-neutral-950 bg-neutral-950 text-white"
                           : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
@@ -285,7 +391,7 @@ export function AdminClient() {
                           key={item.id}
                           type="button"
                           onClick={() => setFolder(item.id)}
-                          className={`min-h-[72px] min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
+                          className={`min-h-18 min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
                             active
                               ? "border-neutral-950 bg-neutral-950 text-white"
                               : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
@@ -321,37 +427,6 @@ export function AdminClient() {
                       );
                     })}
                   </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void runStockAction(() =>
-                        markProductsAvailable(
-                          filteredProducts.map((product) => product.id),
-                        ),
-                      );
-                    }}
-                    disabled={filteredProducts.length === 0}
-                    className="h-10 border border-[#1f6f65] bg-white px-4 text-sm font-semibold text-[#185950] transition hover:bg-[#1f6f65] hover:text-white disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
-                  >
-                    Marcar visibles con stock
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void runStockAction(() =>
-                        markProductsUnavailable(
-                          filteredProducts.map((product) => product.id),
-                        ),
-                      );
-                    }}
-                    disabled={filteredProducts.length === 0}
-                    className="h-10 border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
-                  >
-                    Marcar visibles sin stock
-                  </button>
                 </div>
 
                 <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -461,6 +536,213 @@ export function AdminClient() {
   );
 }
 
+type AddProductPanelProps = {
+  adding: boolean;
+  measureCode: ProductMeasureCode;
+  message: string;
+  onMeasureCodeChange: (measureCode: ProductMeasureCode) => void;
+  onOpenChange: (open: boolean) => void;
+  onPriceModeChange: (priceMode: NewProductPriceMode) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  open: boolean;
+  priceMode: NewProductPriceMode;
+};
+
+function AddProductPanel({
+  adding,
+  measureCode,
+  message,
+  onMeasureCodeChange,
+  onOpenChange,
+  onPriceModeChange,
+  onSubmit,
+  open,
+  priceMode,
+}: AddProductPanelProps) {
+  const defaultPrices = defaultPricesByMeasureCode[measureCode];
+
+  return (
+    <section className="border border-neutral-200 bg-neutral-50 p-3">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-xs font-semibold uppercase text-neutral-500">
+            Catalogo
+          </p>
+          <h2 className="text-lg font-semibold">Agregar item</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => onOpenChange(!open)}
+          className="h-10 border border-neutral-950 bg-white px-4 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white"
+        >
+          {open ? "Cerrar" : "Agregar item"}
+        </button>
+      </div>
+
+      {open ? (
+        <form onSubmit={onSubmit} className="mt-4 space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <label className="space-y-2 text-sm font-semibold text-neutral-700">
+              Imagen
+              <input
+                name="image"
+                type="file"
+                accept="image/jpeg,image/png"
+                required
+                className="block w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 file:mr-3 file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-neutral-700">
+              Medida
+              <select
+                name="measureCode"
+                value={measureCode}
+                onChange={(event) =>
+                  onMeasureCodeChange(event.target.value as ProductMeasureCode)
+                }
+                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+              >
+                {newProductMeasureOptions.map((measure) => (
+                  <option key={measure.code} value={measure.code}>
+                    {measure.label} {measure.size} - {measure.folderLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-neutral-700">
+              Nombre
+              <input
+                name="name"
+                placeholder="Lamina nueva"
+                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-neutral-700">
+              Categoria
+              <select
+                name="themeId"
+                defaultValue="abstracto"
+                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+              >
+                {productThemes.map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <label className="space-y-2 text-sm font-semibold text-neutral-700">
+              Fondo / precio
+              <select
+                name="priceMode"
+                value={priceMode}
+                onChange={(event) =>
+                  onPriceModeChange(event.target.value as NewProductPriceMode)
+                }
+                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+              >
+                <option value="ambos">Blanco y arpillera</option>
+                <option value="blanco">Solo blanco</option>
+                <option value="arpillera">Solo arpillera</option>
+                <option value="base">Precio unico</option>
+              </select>
+            </label>
+
+            <div
+              className={`grid gap-3 ${
+                priceMode === "ambos" ? "sm:grid-cols-2" : ""
+              }`}
+            >
+              {priceMode === "base" ? (
+                <PriceInput
+                  key={`${measureCode}-base`}
+                  defaultValue={defaultPrices.base}
+                  label="Precio unico"
+                  name="basePrice"
+                />
+              ) : null}
+
+              {priceMode === "blanco" || priceMode === "ambos" ? (
+                <PriceInput
+                  key={`${measureCode}-blanco`}
+                  defaultValue={defaultPrices.blanco}
+                  label="Precio blanco"
+                  name="blancoPrice"
+                />
+              ) : null}
+
+              {priceMode === "arpillera" || priceMode === "ambos" ? (
+                <PriceInput
+                  key={`${measureCode}-arpillera`}
+                  defaultValue={defaultPrices.arpillera}
+                  label="Precio arpillera"
+                  name="arpilleraPrice"
+                />
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-neutral-500">
+              El codigo se asigna automatico segun la medida elegida.
+            </p>
+            <button
+              type="submit"
+              disabled={adding}
+              className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+            >
+              {adding ? "Agregando..." : "Guardar item"}
+            </button>
+          </div>
+
+          {message ? (
+            <p className="border border-[#1f6f65]/20 bg-[#1f6f65]/10 p-3 text-sm font-semibold text-[#185950]">
+              {message}
+            </p>
+          ) : null}
+        </form>
+      ) : null}
+    </section>
+  );
+}
+
+type PriceInputProps = {
+  defaultValue: string;
+  label: string;
+  name: string;
+};
+
+function PriceInput({ defaultValue, label, name }: PriceInputProps) {
+  return (
+    <label className="space-y-2 text-sm font-semibold text-neutral-700">
+      {label}
+      <div className="grid grid-cols-[auto_1fr_auto] border border-neutral-300 bg-white focus-within:border-neutral-950">
+        <span className="flex h-11 items-center px-3 text-sm font-semibold text-neutral-500">
+          $
+        </span>
+        <input
+          name={name}
+          type="number"
+          min="1"
+          step="1"
+          defaultValue={defaultValue}
+          required
+          className="h-11 min-w-0 bg-transparent text-sm font-semibold text-neutral-950 outline-none"
+        />
+        <span className="flex h-11 items-center px-3 text-sm font-semibold text-neutral-500">
+          k
+        </span>
+      </div>
+    </label>
+  );
+}
+
 function AdminLoadingState() {
   return (
     <div className="flex min-h-48 flex-col items-center justify-center gap-3">
@@ -529,6 +811,8 @@ function AdminOrderCard({
   onStatusChange,
 }: AdminOrderCardProps) {
   const whatsappHref = getWhatsappHref(order.whatsapp);
+  const visibleItems = order.items.slice(0, 3);
+  const hiddenItemCount = order.items.length - visibleItems.length;
 
   function handleDelete() {
     const confirmed = window.confirm(
@@ -551,8 +835,8 @@ function AdminOrderCard({
   }
 
   return (
-    <article className="border border-neutral-200 bg-white p-3 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <article className="flex h-95 flex-col overflow-hidden border border-neutral-200 bg-white p-3 shadow-sm">
+      <div className="flex shrink-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-neutral-500">
             #{getShortOrderId(order.id)} - {formatOrderDate(order.createdAt)}
@@ -590,8 +874,8 @@ function AdminOrderCard({
         </div>
       </div>
 
-      <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
-        {order.items.map((item, index) => (
+      <div className="mt-3 shrink-0 space-y-1 border-t border-neutral-100 pt-3">
+        {visibleItems.map((item, index) => (
           <div
             key={`${item.id}-${index}`}
             className="grid grid-cols-[1fr_auto] gap-2 border border-neutral-100 px-2 py-1.5 text-xs"
@@ -607,63 +891,70 @@ function AdminOrderCard({
             <span className="font-semibold">{formatMoney(item.price)}</span>
           </div>
         ))}
+        {hiddenItemCount > 0 ? (
+          <div className="border border-dashed border-neutral-200 bg-neutral-50 px-2 py-1.5 text-xs font-semibold text-neutral-500">
+            +{hiddenItemCount} items
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          href={`/compartir?pedido=${encodeURIComponent(order.id)}`}
-          target="_blank"
-          className="border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:border-neutral-950"
-        >
-          Abrir pedido
-        </Link>
-        <Link
-          href={`/planilla?pedido=${encodeURIComponent(order.id)}&from=admin`}
-          target="_blank"
-          className="bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
-        >
-          Planilla
-        </Link>
-        <button
-          type="button"
-          onClick={handleRemoveFromStock}
-          disabled={deleting || updating || removingFromStock}
-          className="border border-neutral-950 bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
-        >
-          {removingFromStock ? "Sacando..." : "Sacar de stock"}
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting || updating || removingFromStock}
-          className="border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
-        >
-          {deleting ? "Borrando..." : "Borrar pedido"}
-        </button>
-      </div>
+      <div className="mt-auto space-y-3 pt-3">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/compartir?pedido=${encodeURIComponent(order.id)}`}
+            target="_blank"
+            className="border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:border-neutral-950"
+          >
+            Abrir pedido
+          </Link>
+          <Link
+            href={`/planilla?pedido=${encodeURIComponent(order.id)}&from=admin`}
+            target="_blank"
+            className="bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
+          >
+            Planilla
+          </Link>
+          <button
+            type="button"
+            onClick={handleRemoveFromStock}
+            disabled={deleting || updating || removingFromStock}
+            className="border border-neutral-950 bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
+          >
+            {removingFromStock ? "Sacando..." : "Sacar de stock"}
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || updating || removingFromStock}
+            className="border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
+          >
+            {deleting ? "Borrando..." : "Borrar pedido"}
+          </button>
+        </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-        {orderStatuses.map((status) => {
-          const active = order.status === status.id;
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+          {orderStatuses.map((status) => {
+            const active = order.status === status.id;
 
-          return (
-            <button
-              key={status.id}
-              type="button"
-              onClick={() => {
-                void onStatusChange(status.id);
-              }}
-              disabled={active || updating}
-              className={`min-h-9 border px-2 text-[11px] font-semibold transition ${
-                active
-                  ? "border-neutral-950 bg-neutral-950 text-white"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-950"
-              } disabled:cursor-not-allowed`}
-            >
-              {status.label}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={status.id}
+                type="button"
+                onClick={() => {
+                  void onStatusChange(status.id);
+                }}
+                disabled={active || updating}
+                className={`min-h-9 border px-2 text-[11px] font-semibold transition ${
+                  active
+                    ? "border-neutral-950 bg-neutral-950 text-white"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-950"
+                } disabled:cursor-not-allowed`}
+              >
+                {status.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </article>
   );

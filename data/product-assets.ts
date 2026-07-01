@@ -376,6 +376,13 @@ export type ProductAsset = {
   image: StaticImageData;
   measureCode: "XG" | "SGF" | "SG" | "DNG" | "TC" | "XGM" | "TEXTURADO";
   name: string;
+  priceOptions?: readonly {
+    id: "blanco" | "arpillera" | "base";
+    label: string;
+    shortLabel: string;
+    price: string;
+    amountInThousands: number;
+  }[];
   themeId:
     | "abstracto"
     | "animales"

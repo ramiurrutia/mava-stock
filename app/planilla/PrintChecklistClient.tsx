@@ -274,9 +274,24 @@ function EmptyChecklist({ message }: { message: string }) {
 function ChecklistFooter() {
   return (
     <footer className="mt-5 grid gap-3 border-t border-neutral-300 pt-4 text-sm sm:grid-cols-2">
+      <NotesField />
       <BlankField label="Preparado por" />
       <BlankField label="Control final" />
     </footer>
+  );
+}
+
+function NotesField() {
+  return (
+    <label className="block border border-neutral-300 p-2 sm:col-span-2">
+      <span className="text-xs font-semibold uppercase text-neutral-500">
+        Observaciones / notas
+      </span>
+      <textarea
+        aria-label="Observaciones o notas"
+        className="mt-2 block min-h-24 w-full resize-none bg-transparent text-sm leading-6 text-neutral-950 outline-none print:min-h-28"
+      />
+    </label>
   );
 }
 

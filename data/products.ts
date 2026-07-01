@@ -12,6 +12,7 @@ export type Product = {
   themeId: ProductThemeId;
   available: boolean;
   image: StaticImageData;
+  priceOptions?: readonly ProductPriceOption[];
 };
 
 export type ProductFolderId =
@@ -240,8 +241,12 @@ export const productFolders = [
   }[];
 }[];
 
-export function getProductPriceOptions(product: Pick<Product, "measureCode">) {
-  return priceOptionsByMeasureCode[product.measureCode];
+export function getProductPriceOptions(
+  product: Pick<Product, "measureCode" | "priceOptions">,
+) {
+  return product.priceOptions?.length
+    ? product.priceOptions
+    : priceOptionsByMeasureCode[product.measureCode];
 }
 
 export function getProductDefaultPriceId(
@@ -512,6 +517,7 @@ function createProduct(asset: ProductAsset): Product {
     themeId: asset.themeId,
     available: true,
     image: asset.image,
+    priceOptions: asset.priceOptions,
   };
 }
 
