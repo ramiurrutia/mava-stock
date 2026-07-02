@@ -241,10 +241,10 @@ export default function Home() {
             <Image
               src="/mava-logo.png"
               alt="MAVA Cuadros"
-              width={180}
-              height={180}
+              width={861}
+              height={610}
               priority
-              className="mx-auto h-28 w-28 object-contain sm:h-32 sm:w-32"
+              className="mx-auto h-auto w-40 object-contain sm:w-42 p-4"
             />
             <p className="text-base font-semibold text-neutral-950 uppercase">
               - Las imágenes están impresas en tela y montadas sobre bastidor.
@@ -281,10 +281,10 @@ export default function Home() {
               <Image
                 src="/mava-logo.png"
                 alt="MAVA Cuadros"
-                width={220}
-                height={220}
+                width={861}
+                height={610}
                 priority
-                className="mx-auto h-28 w-28 object-contain sm:h-36 sm:w-36"
+                className="mx-auto h-auto w-42 object-contain sm:w-60 p-4"
               />
               <h1 className="sr-only">MAVA CUADROS</h1>
               <p className="mt-2 text-base font-semibold text-[#7E5E35]">
