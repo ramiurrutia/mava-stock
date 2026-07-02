@@ -246,8 +246,8 @@ export function AdminClient() {
           <AdminLoadingState />
         ) : isAdmin ? (
           <div className="mt-5 space-y-5">
-            <div className="border border-[#1f6f65] bg-[#1f6f65]/10 p-3">
-              <p className="text-sm font-semibold text-[#185950]">
+            <div className="border border-[#7E5E35] bg-[#7E5E35]/10 p-3">
+              <p className="text-sm font-semibold text-[#5F4627]">
                 Modo admin activo en este navegador.
               </p>
               <p className="mt-1 text-sm leading-6 text-neutral-600">
@@ -702,7 +702,7 @@ function AddProductPanel({
           </div>
 
           {message ? (
-            <p className="border border-[#1f6f65]/20 bg-[#1f6f65]/10 p-3 text-sm font-semibold text-[#185950]">
+            <p className="border border-[#7E5E35]/20 bg-[#7E5E35]/10 p-3 text-sm font-semibold text-[#5F4627]">
               {message}
             </p>
           ) : null}
@@ -850,7 +850,7 @@ function AdminOrderCard({
                 href={whatsappHref}
                 target="_blank"
                 rel="noreferrer"
-                className="font-semibold text-[#1f6f65] underline-offset-4 hover:underline"
+                className="font-semibold text-[#7E5E35] underline-offset-4 hover:underline"
               >
                 {order.whatsapp}
               </a>
@@ -862,7 +862,7 @@ function AdminOrderCard({
         </div>
 
         <div className="shrink-0 text-right">
-          <span className="inline-flex border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1 text-xs font-semibold text-[#185950]">
+          <span className="inline-flex border border-[#7E5E35]/30 bg-[#7E5E35]/10 px-2 py-1 text-xs font-semibold text-[#5F4627]">
             {orderStatusLabels[order.status]}
           </span>
           <p className="mt-2 text-sm font-semibold">
@@ -988,7 +988,7 @@ function AdminProductCard({
         <FramePreview product={product} />
         <span
           className={`absolute left-3 top-3 z-30 px-2 py-1 text-[11px] font-semibold text-white ${
-            product.available ? "bg-[#1f6f65]" : "bg-neutral-950"
+            product.available ? "bg-[#7E5E35]" : "bg-neutral-950"
           }`}
         >
           {product.available ? "Stock" : "Sin stock"}
@@ -1012,7 +1012,7 @@ function AdminProductCard({
               void onAvailabilityChange(true);
             }}
             disabled={product.available}
-            className="h-10 border border-[#1f6f65] bg-white px-2 text-xs font-semibold text-[#185950] transition hover:bg-[#1f6f65] hover:text-white disabled:cursor-not-allowed disabled:bg-[#1f6f65] disabled:text-white"
+            className="h-10 border border-[#7E5E35] bg-white px-2 text-xs font-semibold text-[#5F4627] transition hover:bg-[#7E5E35] hover:text-white disabled:cursor-not-allowed disabled:bg-[#7E5E35] disabled:text-white"
           >
             Con stock
           </button>

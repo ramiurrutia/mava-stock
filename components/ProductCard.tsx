@@ -42,7 +42,7 @@ export function ProductCard({
         isLandscape ? "col-span-2" : ""
       } ${
         selected
-          ? "border-[#1f6f65] bg-[#1f6f65]/10 shadow-sm"
+          ? "border-[#7E5E35] bg-[#7E5E35]/10 shadow-sm"
           : "border-neutral-200 bg-white hover:border-neutral-400"
       } ${
         isUnavailable
@@ -77,7 +77,7 @@ export function ProductCard({
           ) : null}
 
           {selected ? (
-            <span className="absolute left-2.5 top-2.5 z-30 bg-[#1f6f65] px-2 py-1 text-[10px] font-semibold uppercase text-white">
+            <span className="absolute left-2.5 top-2.5 z-30 bg-[#7E5E35] px-2 py-1 text-[10px] font-semibold uppercase text-white">
               Seleccionado
             </span>
           ) : null}
@@ -120,8 +120,8 @@ export function ProductCard({
                 onClick={() => onPriceToggle(option.id)}
                 className={`border px-2 py-1.5 text-left transition disabled:cursor-not-allowed ${
                   active
-                    ? "border-[#1f6f65] bg-[#1f6f65] text-white"
-                    : "border-neutral-200 bg-neutral-50 text-neutral-950 hover:border-[#1f6f65] hover:bg-white"
+                    ? "border-[#7E5E35] bg-[#7E5E35] text-white"
+                    : "border-neutral-200 bg-neutral-50 text-neutral-950 hover:border-[#7E5E35] hover:bg-white"
                 }`}
               >
                 <span

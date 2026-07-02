@@ -41,12 +41,12 @@ export function SelectedBar({
 
   return (
     <div className="fixed inset-x-2 bottom-2 z-50 mx-auto max-w-2xl border border-neutral-950 bg-white p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
-      <div className="mb-1.5 h-1 bg-[#1f6f65]" />
+      <div className="mb-1.5 h-1 bg-[#7E5E35]" />
       <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
         <div className="grid min-w-0 grid-cols-[1fr_auto] items-center gap-2 px-1.5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="bg-[#1f6f65] px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+              <span className="bg-[#7E5E35] px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
                 Seleccion activa
               </span>
               <p className="text-sm font-semibold text-neutral-950">

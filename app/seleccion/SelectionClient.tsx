@@ -253,8 +253,8 @@ function SelectedProductCard({
           <p className="text-neutral-500">{product.category}</p>
         </div>
         {selectedPrice ? (
-          <div className="flex min-h-8 items-center justify-between gap-2 border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1.5 text-[11px]">
-            <span className="truncate font-semibold text-[#1f6f65]">
+          <div className="flex min-h-8 items-center justify-between gap-2 border border-[#7E5E35]/30 bg-[#7E5E35]/10 px-2 py-1.5 text-[11px]">
+            <span className="truncate font-semibold text-[#7E5E35]">
               {selectedPrice.shortLabel}
             </span>
             <span className="shrink-0 font-semibold text-neutral-950">

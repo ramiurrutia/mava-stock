@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -237,13 +238,15 @@ export default function Home() {
           aria-labelledby="catalog-notice-title"
         >
           <div className="w-full max-w-md border border-neutral-200 bg-white p-5 shadow-[0_24px_70px_rgba(0,0,0,0.26)]">
-            <p
-              id="catalog-notice-title"
-              className="text-center font-bold uppercase text-[#1f6f65]"
-            >
-              Mava Cuadros
-            </p>
-            <p className="mt-2 text-base font-semibold text-neutral-950 uppercase">
+            <Image
+              src="/mava-logo.png"
+              alt="MAVA Cuadros"
+              width={180}
+              height={180}
+              priority
+              className="mx-auto h-28 w-28 object-contain sm:h-32 sm:w-32"
+            />
+            <p className="text-base font-semibold text-neutral-950 uppercase">
               - Las imágenes están impresas en tela y montadas sobre bastidor.
             </p>
             <p className="mt-2 text-base font-semibold text-neutral-950 uppercase">
@@ -273,12 +276,18 @@ export default function Home() {
       ) : null}
       <div className="mx-auto w-full max-w-7xl px-2.5 pb-24 pt-3 sm:px-4 lg:px-6">
         <header className="mb-4 border-b border-neutral-300 pb-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="relative text-center">
             <div>
-              <h1 className="mt-1 text-3xl font-bold sm:text-4xl">
-                MAVA CUADROS
-              </h1>
-              <p className="text-base font-semibold text-[#1f6f65]">
+              <Image
+                src="/mava-logo.png"
+                alt="MAVA Cuadros"
+                width={220}
+                height={220}
+                priority
+                className="mx-auto h-28 w-28 object-contain sm:h-36 sm:w-36"
+              />
+              <h1 className="sr-only">MAVA CUADROS</h1>
+              <p className="mt-2 text-base font-semibold text-[#7E5E35]">
                 {activeFolder
                   ? "Clickea las imagenes para realizar tu pedido"
                   : "Elegi un tamaño para ver los cuadros disponibles"}
@@ -286,10 +295,10 @@ export default function Home() {
             </div>
 
             {isAdmin ? (
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <div className="mt-3 flex justify-center gap-2 sm:absolute sm:right-0 sm:top-0 sm:mt-0">
                 <Link
                   href="/admin"
-                  className="border border-[#1f6f65] bg-[#1f6f65] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#185950] sm:px-4 sm:text-sm"
+                  className="border border-[#7E5E35] bg-[#7E5E35] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#5F4627] sm:px-4 sm:text-sm"
                 >
                   Panel admin
                 </Link>
@@ -326,14 +335,14 @@ export default function Home() {
                   <span className="block text-lg font-semibold leading-tight">
                     {item.label}
                   </span>
-                  <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#1f6f65]">
+                  <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#7E5E35]">
                     {getFolderProductCount(item.id)} cuadros disponibles
                   </span>
                   <span className="mt-4 flex flex-wrap gap-1.5">
                     {item.measures.map((measure) => (
                       <span
                         key={measure.code}
-                        className="border border-neutral-200 bg-neutral-50 px-2 py-1 text-sm font-semibold text-neutral-700 transition group-hover:border-[#1f6f65]/40"
+                        className="border border-neutral-200 bg-neutral-50 px-2 py-1 text-sm font-semibold text-neutral-700 transition group-hover:border-[#7E5E35]/40"
                       >
                         <span className="text-neutral-950">
                           {measure.label}

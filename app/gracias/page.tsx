@@ -4,7 +4,7 @@ export default function ThanksPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[#f7f4ef] px-4 py-12 text-neutral-950">
       <section className="w-full max-w-xl border border-[#eadfd4] bg-white px-6 py-12 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase text-[#1f6f65]">
+        <p className="text-xs font-semibold uppercase text-[#7E5E35]">
           Pedido guardado
         </p>
         <h1 className="mt-2 text-3xl font-semibold">

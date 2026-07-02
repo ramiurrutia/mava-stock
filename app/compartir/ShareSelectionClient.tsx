@@ -126,7 +126,7 @@ function TemporarySelectionShareView() {
                 type="button"
                 onClick={finishOrder}
                 disabled={finishedOrder || finishingOrder}
-                className="bg-[#1f6f65] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#185950] disabled:cursor-not-allowed disabled:bg-neutral-300"
+                className="bg-[#7E5E35] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5F4627] disabled:cursor-not-allowed disabled:bg-neutral-300"
               >
                 {finishedOrder
                   ? "Pedido terminado"
@@ -246,7 +246,7 @@ function TemporarySelectionShareView() {
                             key={option.id}
                             className={`border p-2 ${
                               active
-                                ? "border-[#1f6f65] bg-[#1f6f65] text-white"
+                                ? "border-[#7E5E35] bg-[#7E5E35] text-white"
                                 : "border-neutral-200"
                             }`}
                           >
@@ -354,7 +354,7 @@ function SavedOrderShareView({
               <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1 text-xs font-semibold text-[#185950]">
+                    <span className="border border-[#7E5E35]/30 bg-[#7E5E35]/10 px-2 py-1 text-xs font-semibold text-[#5F4627]">
                       {orderStatusLabels[order.status]}
                     </span>
                     <span className="text-xs font-semibold uppercase text-neutral-500">
@@ -443,8 +443,8 @@ function SavedOrderItemCard({ item }: SavedOrderItemCardProps) {
             {item.backgroundLabel || "Precio"}
           </p>
         </div>
-        <div className="flex min-h-8 items-center justify-between gap-2 border border-[#1f6f65]/30 bg-[#1f6f65]/10 px-2 py-1.5 text-[11px]">
-          <span className="truncate font-semibold text-[#1f6f65]">
+        <div className="flex min-h-8 items-center justify-between gap-2 border border-[#7E5E35]/30 bg-[#7E5E35]/10 px-2 py-1.5 text-[11px]">
+          <span className="truncate font-semibold text-[#7E5E35]">
             {item.backgroundLabel || "Precio"}
           </span>
           <span className="shrink-0 font-semibold text-neutral-950">

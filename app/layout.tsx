@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Mava Cuadros",
   description: "Catalogo de imagenes en stock para seleccion mayorista.",
   icons: {
-    icon: "/mava-logo-square.png",
-    apple: "/mava-logo-square.png",
+    icon: "/mava-logo.png",
+    apple: "/mava-logo.png",
   },
 };
 

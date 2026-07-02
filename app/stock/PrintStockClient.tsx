@@ -43,7 +43,7 @@ export function PrintStockClient() {
         <header className="border-b border-neutral-300 pb-4">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-semibold uppercase text-[#2f9c95]">
+              <p className="text-xs font-semibold uppercase text-[#7E5E35]">
                 Mava Cuadros
               </p>
               <h1 className="mt-1 text-2xl font-semibold">
@@ -82,7 +82,7 @@ export function PrintStockClient() {
                   <div className="flex items-start justify-between gap-1">
                     <span
                       className={`text-[9px] font-semibold uppercase ${
-                        product.available ? "text-[#2f9c95]" : "text-neutral-500"
+                        product.available ? "text-[#7E5E35]" : "text-neutral-500"
                       }`}
                     >
                       {product.available ? "Stock" : "Sin stock"}
