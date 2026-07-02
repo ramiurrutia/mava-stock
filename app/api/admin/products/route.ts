@@ -10,6 +10,10 @@ const execFileAsync = promisify(execFile);
 const projectRoot = process.cwd();
 const imagesRoot = path.join(projectRoot, "app", "sources", "images");
 const metadataPath = path.join(projectRoot, "data", "product-metadata.json");
+const storageBucket =
+  process.env.SUPABASE_SOURCES_BUCKET ??
+  process.env.NEXT_PUBLIC_SUPABASE_SOURCES_BUCKET ??
+  "sources";
 const validThemeIds = new Set([
   "abstracto",
   "animales",
@@ -53,6 +57,66 @@ type ProductPriceOption = {
   price: string;
   amountInThousands: number;
 };
+
+function getSupabaseStorageConfig() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+
+  if (!url || !serviceRoleKey) {
+    return null;
+  }
+
+  return {
+    serviceRoleKey,
+    url: url.replace(/\/$/, ""),
+  };
+}
+
+function encodeStoragePath(storagePath: string) {
+  return storagePath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+async function uploadImageToSupabaseStorage(
+  storagePath: string,
+  imageBuffer: Buffer,
+  contentType: string,
+) {
+  const config = getSupabaseStorageConfig();
+
+  if (!config) {
+    throw new Error(
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para subir la imagen al storage.",
+    );
+  }
+
+  const response = await fetch(
+    `${config.url}/storage/v1/object/${storageBucket}/${encodeStoragePath(storagePath)}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: config.serviceRoleKey,
+        ...(config.serviceRoleKey.startsWith("sb_secret_")
+          ? {}
+          : { Authorization: `Bearer ${config.serviceRoleKey}` }),
+        "Content-Type": contentType,
+        "x-upsert": "true",
+      },
+      body: new Uint8Array(imageBuffer),
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+
+    throw new Error(
+      details || "No se pudo subir la imagen al storage de Supabase.",
+    );
+  }
+}
 
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -262,9 +326,26 @@ export async function POST(request: Request) {
   const fileName = `${code}${extension}`;
   const folderPath = path.join(imagesRoot, config.folder);
   const filePath = path.join(folderPath, fileName);
+  const storagePath = `images/${config.folder}/${fileName}`;
+  const contentType =
+    image.type || (extension === ".png" ? "image/png" : "image/jpeg");
   const imageBuffer = Buffer.from(await image.arrayBuffer());
 
   await writeFile(filePath, imageBuffer);
+  try {
+    await uploadImageToSupabaseStorage(storagePath, imageBuffer, contentType);
+  } catch (error) {
+    console.error(error);
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo subir la imagen al storage de Supabase.",
+      },
+      { status: 500 },
+    );
+  }
 
   const metadata = await readMetadata();
   const nextProduct: MetadataProduct = {
@@ -273,7 +354,7 @@ export async function POST(request: Request) {
     measureCode,
     name,
     originalFileName: image.name,
-    originalPath: `app/sources/images/${config.folder}/${fileName}`,
+    originalPath: storagePath,
     priceOptions,
     themeId,
   };

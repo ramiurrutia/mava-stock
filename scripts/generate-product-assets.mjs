@@ -883,6 +883,62 @@ function makeImportPath(filePath) {
   return `@/${relativePath}`;
 }
 
+function makeStoragePath(filePath) {
+  const relativePath = path
+    .relative(path.join(projectRoot, "app", "sources"), filePath)
+    .split(path.sep)
+    .join("/");
+
+  return relativePath;
+}
+
+function readJpegDimensions(buffer, filePath) {
+  let offset = 2;
+
+  while (offset < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      break;
+    }
+
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+
+    if (
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf)
+    ) {
+      return {
+        width: buffer.readUInt16BE(offset + 7),
+        height: buffer.readUInt16BE(offset + 5),
+      };
+    }
+
+    offset += 2 + length;
+  }
+
+  throw new Error(`Could not read JPEG dimensions: ${filePath}`);
+}
+
+function readImageDimensions(filePath) {
+  const buffer = readFileSync(filePath);
+  const extension = path.extname(filePath).toLowerCase();
+
+  if (extension === ".png") {
+    return {
+      width: buffer.readUInt32BE(16),
+      height: buffer.readUInt32BE(20),
+    };
+  }
+
+  if (extension === ".jpg" || extension === ".jpeg") {
+    return readJpegDimensions(buffer, filePath);
+  }
+
+  throw new Error(`Unsupported image extension: ${filePath}`);
+}
+
 function listImages(config) {
   const folderPath = path.join(imagesRoot, config.folder);
   const codePrefix = getCodePrefix(config);
@@ -923,6 +979,7 @@ function listImages(config) {
     })
     .map(({ entry, existingCode }) => {
       const filePath = path.join(folderPath, entry.name);
+      const dimensions = readImageDimensions(filePath);
       const stem = path.basename(entry.name, path.extname(entry.name));
       const themeId = inferThemeId(config, stem);
       const design = inferDesignInfo(stem, themeId);
@@ -936,6 +993,8 @@ function listImages(config) {
         imageName: normalizeName(stem),
         importPath: makeImportPath(filePath),
         measureCode: config.measureCode,
+        storagePath: makeStoragePath(filePath),
+        ...dimensions,
         themeId,
       };
     });
@@ -1043,21 +1102,11 @@ const namedAssets = assetsWithMetadata.map((asset) => {
   };
 });
 
-const imports = namedAssets
-  .map((asset, index) => {
-    const importName = `asset${String(index + 1).padStart(3, "0")}`;
-
-    return `import ${importName} from ${JSON.stringify(asset.importPath)};`;
-  })
-  .join("\n");
-
 const entries = namedAssets
-  .map((asset, index) => {
-    const importName = `asset${String(index + 1).padStart(3, "0")}`;
-
+  .map((asset) => {
     return `  {
     code: ${JSON.stringify(asset.code)},
-    image: ${importName},
+    image: createSupabaseImage(${JSON.stringify(asset.storagePath)}, ${asset.width}, ${asset.height}),
     measureCode: ${JSON.stringify(asset.measureCode)},
     name: ${JSON.stringify(asset.code)},
     ${
@@ -1070,7 +1119,7 @@ const entries = namedAssets
   .join("\n");
 
 const output = `import type { StaticImageData } from "next/image";
-${imports}
+import { createSupabaseImage } from "@/data/supabase-storage";
 
 export type ProductAsset = {
   code: string;

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import burlapLayer from "@/app/sources/layers/ARPILLERA.png";
-import whiteLayer from "@/app/sources/layers/BLANCO.png";
+import { createSupabaseImage } from "@/data/supabase-storage";
 import {
   getProductPreviewDimensions,
   type PriceOptionId,
@@ -12,6 +11,9 @@ type FramePreviewProps = {
   product: Pick<Product, "code" | "image" | "measureCode">;
   selectedPriceId?: PriceOptionId;
 };
+
+const burlapLayer = createSupabaseImage("layers/ARPILLERA.png", 839, 1170);
+const whiteLayer = createSupabaseImage("layers/BLANCO.png", 1805, 2540);
 
 export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
   const frameLayer = selectedPriceId === "arpillera" ? burlapLayer : whiteLayer;
