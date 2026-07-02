@@ -231,7 +231,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
       {showCatalogNotice ? (
         <div
-          className="fixed inset-0 z-[80] grid place-items-center bg-neutral-950/45 px-4"
+          className="fixed inset-0 z-80 grid place-items-center bg-neutral-950/45 px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="catalog-notice-title"
@@ -239,27 +239,31 @@ export default function Home() {
           <div className="w-full max-w-md border border-neutral-200 bg-white p-5 shadow-[0_24px_70px_rgba(0,0,0,0.26)]">
             <p
               id="catalog-notice-title"
-              className="text-xs font-semibold uppercase text-[#1f6f65]"
+              className="text-center font-bold uppercase text-[#1f6f65]"
             >
               Mava Cuadros
             </p>
-            <p className="mt-3 text-base font-semibold leading-7 text-neutral-950">
-              Nuestras imágenes están impresas en tela y montadas sobre
-              bastidor. Para conocer las opciones disponibles de marco,
-              contactanos por WhatsApp.
+            <p className="mt-2 text-base font-semibold text-neutral-950 uppercase">
+              - Las imágenes están impresas en tela y montadas sobre bastidor.
             </p>
+            <p className="mt-2 text-base font-semibold text-neutral-950 uppercase">
+              - Los cuadros están armados con el color de marco y fondo que
+              creemos más conveniente, pero podemos charlar al respecto sobre
+              modificaciones.
+            </p>
+
             <div className="mt-5 grid gap-2">
               <button
                 type="button"
                 onClick={closeCatalogNotice}
-                className="h-11 border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950"
+                className="h-11 border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950 hover:bg-neutral-100"
               >
                 Entendido
               </button>
               <button
                 type="button"
                 onClick={hideCatalogNoticePermanently}
-                className="h-11 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                className="h-11 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-700"
               >
                 No volver a mostrar
               </button>
