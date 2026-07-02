@@ -9,7 +9,7 @@ import {
 } from "@/data/products";
 
 type FramePreviewProps = {
-  product: Pick<Product, "name" | "image" | "measureCode">;
+  product: Pick<Product, "code" | "image" | "measureCode">;
   selectedPriceId?: PriceOptionId;
 };
 
@@ -55,7 +55,7 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
     <div
       className="relative w-full overflow-hidden bg-transparent shadow-sm"
       style={previewStyle}
-      aria-label={`Vista previa de ${product.name}`}
+      aria-label={`Vista previa de ${product.code}`}
       role="img"
     >
       {isPanoramicFrame ? (

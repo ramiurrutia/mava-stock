@@ -753,7 +753,6 @@ function readProductMetadata() {
       .filter(
         (item) =>
           typeof item.code === "string" &&
-          typeof item.name === "string" &&
           validThemeIds.has(item.themeId),
       )
       .map((item) => [item.code, item]),
@@ -1007,8 +1006,6 @@ const assetsWithMetadata = resolvedAssets.map((asset) => {
 
   return {
     ...asset,
-    imageName: metadata.name,
-    metadataName: metadata.name,
     priceOptions: readMetadataPriceOptions(metadata),
     themeId: metadata.themeId,
   };
@@ -1062,7 +1059,7 @@ const entries = namedAssets
     code: ${JSON.stringify(asset.code)},
     image: ${importName},
     measureCode: ${JSON.stringify(asset.measureCode)},
-    name: ${JSON.stringify(asset.imageName)},
+    name: ${JSON.stringify(asset.code)},
     ${
       asset.priceOptions
         ? `priceOptions: ${JSON.stringify(asset.priceOptions)},\n    `

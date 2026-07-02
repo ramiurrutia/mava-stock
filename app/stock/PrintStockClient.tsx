@@ -50,7 +50,7 @@ export function PrintStockClient() {
                 Catalogo completo de stock
               </h1>
               <p className="mt-1 text-sm text-neutral-600">
-                Listado imprimible con codigo, nombre y medida de cada cuadro.
+                Listado imprimible con codigo y medida de cada cuadro.
               </p>
             </div>
             <div className="text-sm text-neutral-700">
@@ -95,9 +95,6 @@ export function PrintStockClient() {
                   <h2 className="mt-0.5 text-sm font-semibold leading-tight">
                     {product.code}
                   </h2>
-                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-neutral-700">
-                    {product.name}
-                  </p>
                   <p className="mt-1 text-[10px] font-semibold text-neutral-950">
                     {product.size}
                   </p>

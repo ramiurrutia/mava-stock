@@ -76,7 +76,7 @@ function parsePriceInThousands(value: string) {
 }
 
 function formatPrice(amountInThousands: number) {
-  return `$${amountInThousands.toLocaleString("es-AR")}k`;
+  return `$${amountInThousands.toLocaleString("es-AR")} mil`;
 }
 
 function createPriceOption(

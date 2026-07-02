@@ -56,14 +56,14 @@ export const priceOptions = [
     id: "blanco",
     label: "Fondo blanco",
     shortLabel: "Blanco",
-    price: "$129k",
+    price: "$129 mil",
     amountInThousands: 129,
   },
   {
     id: "arpillera",
     label: "Fondo arpillera",
     shortLabel: "Arpillera",
-    price: "$142k",
+    price: "$142 mil",
     amountInThousands: 142,
   },
 ] as const satisfies readonly ProductPriceOption[];
@@ -79,14 +79,14 @@ const priceOptionsByMeasureCode: Record<
       id: "blanco",
       label: "Fondo blanco",
       shortLabel: "Blanco",
-      price: "$87k",
+      price: "$87 mil",
       amountInThousands: 87,
     },
     {
       id: "arpillera",
       label: "Fondo arpillera",
       shortLabel: "Arpillera",
-      price: "$95k",
+      price: "$95 mil",
       amountInThousands: 95,
     },
   ],
@@ -95,7 +95,7 @@ const priceOptionsByMeasureCode: Record<
       id: "base",
       label: "Precio",
       shortLabel: "Precio",
-      price: "$45k",
+      price: "$45 mil",
       amountInThousands: 45,
     },
   ],
@@ -104,7 +104,7 @@ const priceOptionsByMeasureCode: Record<
       id: "base",
       label: "Precio",
       shortLabel: "Precio",
-      price: "$320k",
+      price: "$320 mil",
       amountInThousands: 320,
     },
   ],
@@ -113,7 +113,7 @@ const priceOptionsByMeasureCode: Record<
       id: "base",
       label: "Precio",
       shortLabel: "Precio",
-      price: "$249k",
+      price: "$249 mil",
       amountInThousands: 249,
     },
   ],
@@ -122,7 +122,7 @@ const priceOptionsByMeasureCode: Record<
       id: "base",
       label: "Precio",
       shortLabel: "Precio",
-      price: "$165k",
+      price: "$165 mil",
       amountInThousands: 165,
     },
   ],
@@ -295,10 +295,6 @@ export function getProductPreviewDimensions(
 }
 
 export function formatPriceTotal(amountInThousands: number) {
-  if (amountInThousands < 1000) {
-    return `$${amountInThousands}k`;
-  }
-
   return `$${(amountInThousands * 1000).toLocaleString("es-AR")}`;
 }
 
@@ -509,7 +505,7 @@ function createProduct(asset: ProductAsset): Product {
   return {
     id: slugify(asset.code),
     code: asset.code,
-    name: asset.name,
+    name: asset.code,
     category: themeLabelById[asset.themeId],
     folderId: folderIdByMeasureCode[asset.measureCode],
     measureCode: asset.measureCode,

@@ -244,11 +244,8 @@ function SelectedProductCard({
 
       <div className="mt-3 flex flex-1 flex-col gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase text-neutral-500">
+          <h2 className="font-mono text-sm font-semibold uppercase leading-snug">
             {product.code}
-          </p>
-          <h2 className="mt-1 line-clamp-2 min-h-[38px] text-sm font-semibold leading-snug">
-            {product.name}
           </h2>
         </div>
         <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">

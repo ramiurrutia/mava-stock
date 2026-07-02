@@ -157,7 +157,6 @@ function writeMetadata(entries) {
       code: entry.code,
       fileName: path.basename(entry.targetPath),
       measureCode: entry.measureCode,
-      name: entry.name,
       originalFileName: previous?.originalFileName ?? path.basename(entry.sourcePath),
       originalPath: previous?.originalPath ?? toProjectPath(entry.sourcePath),
       themeId: entry.themeId,

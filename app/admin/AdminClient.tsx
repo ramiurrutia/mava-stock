@@ -881,9 +881,7 @@ function AdminOrderCard({
             className="grid grid-cols-[1fr_auto] gap-2 border border-neutral-100 px-2 py-1.5 text-xs"
           >
             <div className="min-w-0">
-              <p className="truncate font-semibold">
-                {item.code} - {item.name}
-              </p>
+              <p className="truncate font-mono font-semibold uppercase">{item.code}</p>
               <p className="truncate text-neutral-500">
                 {item.size} - {item.backgroundLabel}
               </p>
@@ -999,11 +997,8 @@ function AdminProductCard({
 
       <div className="mt-3 space-y-2">
         <div>
-          <p className="text-xs font-semibold uppercase text-neutral-500">
+          <h2 className="font-mono text-sm font-semibold uppercase leading-snug">
             {product.code}
-          </p>
-          <h2 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
-            {product.name}
           </h2>
         </div>
         <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">

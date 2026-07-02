@@ -12,6 +12,7 @@ import type { CustomerOrder } from "@/data/orders";
 import {
   createSelectionSearchParams,
   findPriceOption,
+  formatPriceTotal,
   parseSelectionParams,
   type PriceOptionId,
   products,
@@ -332,13 +333,12 @@ function ChecklistProductCard({
           <h2 className="mt-0.5 text-sm font-semibold leading-tight">
             {product.code}
           </h2>
-          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-700">
-            {product.name}
-          </p>
           <p className="mt-0.5 text-[10px] text-neutral-500">{product.size}</p>
           <p className="mt-0.5 text-[10px] font-semibold leading-tight text-neutral-800">
             {selectedPrice
-              ? `${selectedPrice.shortLabel} ${selectedPrice.price}`
+              ? `${selectedPrice.shortLabel} ${formatPriceTotal(
+                  selectedPrice.amountInThousands,
+                )}`
               : "Precio sin elegir"}
           </p>
         </div>
@@ -388,9 +388,6 @@ function ChecklistOrderItemCard({ index, item }: ChecklistOrderItemCardProps) {
           <h2 className="mt-0.5 text-sm font-semibold leading-tight">
             {item.code}
           </h2>
-          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-700">
-            {item.name}
-          </p>
           <p className="mt-0.5 text-[10px] text-neutral-500">{item.size}</p>
           <p className="mt-0.5 text-[10px] font-semibold leading-tight text-neutral-800">
             {item.backgroundLabel || "Precio"} {formatMoney(item.price)}

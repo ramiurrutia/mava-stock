@@ -91,12 +91,9 @@ export function ProductCard({
           }`}
         >
           <div className="min-w-0">
-            <h2 className="line-clamp-2 text-[13px] font-semibold leading-snug text-neutral-950">
-              {product.name}
-            </h2>
-            <p className="mt-0.5 truncate font-mono text-[10px] uppercase text-neutral-500">
+            <h2 className="truncate font-mono text-[13px] font-semibold uppercase leading-snug text-neutral-950">
               {product.code}
-            </p>
+            </h2>
           </div>
 
           <p

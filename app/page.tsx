@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
 import {
@@ -19,6 +19,34 @@ import {
 } from "@/data/products";
 
 const folderUrlParam = "tamano";
+const catalogNoticeStorageKey = "mava-catalog-notice-hidden";
+const catalogNoticeChangeEvent = "mava-catalog-notice-change";
+
+function subscribeCatalogNotice(callback: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  window.addEventListener("storage", callback);
+  window.addEventListener(catalogNoticeChangeEvent, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(catalogNoticeChangeEvent, callback);
+  };
+}
+
+function getCatalogNoticeSnapshot() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(catalogNoticeStorageKey) !== "true";
+}
+
+function getCatalogNoticeServerSnapshot() {
+  return false;
+}
 
 function getCatalogUrl(folderId: ProductFolderId | null) {
   const url = new URL(window.location.href);
@@ -49,6 +77,13 @@ export default function Home() {
     {},
   );
   const [search, setSearch] = useState("");
+  const [dismissedCatalogNotice, setDismissedCatalogNotice] = useState(false);
+  const shouldShowCatalogNotice = useSyncExternalStore(
+    subscribeCatalogNotice,
+    getCatalogNoticeSnapshot,
+    getCatalogNoticeServerSnapshot,
+  );
+  const showCatalogNotice = shouldShowCatalogNotice && !dismissedCatalogNotice;
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
 
@@ -182,8 +217,56 @@ export default function Home() {
     window.history.replaceState(null, "", getCatalogUrl(null));
   }
 
+  function closeCatalogNotice() {
+    setDismissedCatalogNotice(true);
+  }
+
+  function hideCatalogNoticePermanently() {
+    window.localStorage.setItem(catalogNoticeStorageKey, "true");
+    window.dispatchEvent(new Event(catalogNoticeChangeEvent));
+    setDismissedCatalogNotice(true);
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f5f2] text-neutral-950">
+      {showCatalogNotice ? (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-neutral-950/45 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="catalog-notice-title"
+        >
+          <div className="w-full max-w-md border border-neutral-200 bg-white p-5 shadow-[0_24px_70px_rgba(0,0,0,0.26)]">
+            <p
+              id="catalog-notice-title"
+              className="text-xs font-semibold uppercase text-[#1f6f65]"
+            >
+              Mava Cuadros
+            </p>
+            <p className="mt-3 text-base font-semibold leading-7 text-neutral-950">
+              Nuestras imágenes están impresas en tela y montadas sobre
+              bastidor. Para conocer las opciones disponibles de marco,
+              contactanos por WhatsApp.
+            </p>
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                onClick={closeCatalogNotice}
+                className="h-11 border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-950"
+              >
+                Entendido
+              </button>
+              <button
+                type="button"
+                onClick={hideCatalogNoticePermanently}
+                className="h-11 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              >
+                No volver a mostrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto w-full max-w-7xl px-2.5 pb-24 pt-3 sm:px-4 lg:px-6">
         <header className="mb-4 border-b border-neutral-300 pb-4">
           <div className="flex items-start justify-between gap-4">
