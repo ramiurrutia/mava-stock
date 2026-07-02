@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const siteTitle = "Mava Cuadros | Catalogo de cuadros";
-const siteDescription =
-  "Catalogo de cuadros decorativos en stock, impresos en tela y montados sobre bastidor. Elegi el tamano, revisa las opciones disponibles y arma tu pedido por WhatsApp.";
+const siteTitle = "Mava Cuadros | Stock disponible";
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_URL
@@ -23,7 +21,6 @@ export const metadata: Metadata = {
     default: siteTitle,
     template: "%s | Mava Cuadros",
   },
-  description: siteDescription,
   applicationName: "Mava Cuadros",
   icons: {
     icon: "/mava-logo.png",
@@ -31,7 +28,6 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: siteTitle,
-    description: siteDescription,
     url: siteUrl,
     siteName: "Mava Cuadros",
     images: [socialImage],
@@ -41,7 +37,6 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
-    description: siteDescription,
     images: [socialImage.url],
   },
 };
