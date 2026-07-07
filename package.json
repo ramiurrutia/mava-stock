@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cache:storage": "node scripts/set-storage-cache.mjs",
     "generate:products": "node scripts/generate-product-assets.mjs",
     "rename:product-images": "node scripts/rename-product-images.mjs",
     "start": "next start",

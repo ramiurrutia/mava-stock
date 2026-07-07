@@ -14,6 +14,9 @@ const storageBucket =
   process.env.SUPABASE_SOURCES_BUCKET ??
   process.env.NEXT_PUBLIC_SUPABASE_SOURCES_BUCKET ??
   "sources";
+const storageCacheControl =
+  process.env.SUPABASE_STORAGE_CACHE_CONTROL ??
+  "public, max-age=31536000, immutable";
 const validThemeIds = new Set([
   "abstracto",
   "animales",
@@ -103,6 +106,7 @@ async function uploadImageToSupabaseStorage(
           ? {}
           : { Authorization: `Bearer ${config.serviceRoleKey}` }),
         "Content-Type": contentType,
+        "Cache-Control": storageCacheControl,
         "x-upsert": "true",
       },
       body: new Uint8Array(imageBuffer),
