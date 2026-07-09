@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { FramePreview } from "@/components/FramePreview";
+import { useCatalogProducts } from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   useLocalStock,
@@ -15,8 +16,8 @@ import {
   getProductPriceOptions,
   getSelectedPriceTotal,
   parseSelectionParams,
-  products,
   type PriceOptionId,
+  type Product,
 } from "@/data/products";
 
 export function SelectionClient() {
@@ -24,14 +25,22 @@ export function SelectionClient() {
   const router = useRouter();
   const [showCheckoutCta, setShowCheckoutCta] = useState(true);
   const { unavailableProductIds } = useLocalStock();
+  const catalogProducts = useCatalogProducts();
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
 
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const productsWithLocalStock = applyLocalStock(
+    catalogProducts,
+    unavailableProductIds,
+  );
   const selectedProducts = productsWithLocalStock.filter((product) =>
     ids.includes(product.id) && product.available,
   );
   const selectedProductIds = selectedProducts.map((product) => product.id);
-  const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
+  const totalPrice = getSelectedPriceTotal(
+    selectedProductIds,
+    selectedPriceIds,
+    productsWithLocalStock,
+  );
   const unpricedCount = selectedProductIds.filter(
     (id) => {
       const product = selectedProducts.find((item) => item.id === id);
@@ -221,7 +230,7 @@ export function SelectionClient() {
 }
 
 type SelectedProductCardProps = {
-  product: (typeof products)[number];
+  product: Product;
   selectedPriceId?: PriceOptionId;
   onRemove: () => void;
 };

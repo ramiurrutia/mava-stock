@@ -4,18 +4,19 @@ import {
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
-  products,
   type Product,
   type SelectedPriceIds,
 } from "@/data/products";
 
 type SelectedBarProps = {
+  products: Product[];
   selectedIds: string[];
   selectedPriceIds: SelectedPriceIds;
   onClear: () => void;
 };
 
 export function SelectedBar({
+  products,
   selectedIds,
   selectedPriceIds,
   onClear,
@@ -24,7 +25,11 @@ export function SelectedBar({
     return null;
   }
 
-  const totalPrice = getSelectedPriceTotal(selectedIds, selectedPriceIds);
+  const totalPrice = getSelectedPriceTotal(
+    selectedIds,
+    selectedPriceIds,
+    products,
+  );
   const selectedProducts = selectedIds
     .map((id) => products.find((product) => product.id === id))
     .filter((product): product is Product => Boolean(product));

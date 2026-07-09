@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FramePreview } from "@/components/FramePreview";
+import { useCatalogProducts } from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   useAdminMode,
@@ -17,7 +18,7 @@ import {
   getSelectedPriceTotal,
   parseSelectionParams,
   type PriceOptionId,
-  products,
+  type Product,
 } from "@/data/products";
 
 type ShareSelectionClientProps = {
@@ -48,12 +49,16 @@ function TemporarySelectionShareView() {
   const searchParams = useSearchParams();
   const { isAdmin } = useAdminMode();
   const { createFinishedOrder, unavailableProductIds } = useLocalStock();
+  const catalogProducts = useCatalogProducts();
   const [finishingOrder, setFinishingOrder] = useState(false);
   const [finishError, setFinishError] = useState("");
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
   const checklistParams = createSelectionSearchParams(ids, selectedPriceIds);
 
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const productsWithLocalStock = applyLocalStock(
+    catalogProducts,
+    unavailableProductIds,
+  );
   const selectedProducts = productsWithLocalStock.filter((product) =>
     ids.includes(product.id),
   );
@@ -61,7 +66,11 @@ function TemporarySelectionShareView() {
   const selectedCodes = selectedProducts
     .map((product) => product.code)
     .join(", ");
-  const totalPrice = getSelectedPriceTotal(selectedProductIds, selectedPriceIds);
+  const totalPrice = getSelectedPriceTotal(
+    selectedProductIds,
+    selectedPriceIds,
+    productsWithLocalStock,
+  );
   const unpricedCount = selectedProductIds.filter(
     (id) => {
       const product = selectedProducts.find((item) => item.id === id);
@@ -292,6 +301,7 @@ function SavedOrderShareView({
   orderId,
 }: SavedOrderShareViewProps) {
   const { isAdmin } = useAdminMode();
+  const catalogProducts = useCatalogProducts();
   const planillaHref = order
     ? `/planilla?pedido=${encodeURIComponent(order.id)}`
     : "";
@@ -397,7 +407,11 @@ function SavedOrderShareView({
 
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {order.items.map((item, index) => (
-                <SavedOrderItemCard key={`${item.id}-${index}`} item={item} />
+                <SavedOrderItemCard
+                  key={`${item.id}-${index}`}
+                  item={item}
+                  products={catalogProducts}
+                />
               ))}
             </section>
           </>
@@ -409,9 +423,10 @@ function SavedOrderShareView({
 
 type SavedOrderItemCardProps = {
   item: CustomerOrder["items"][number];
+  products: Product[];
 };
 
-function SavedOrderItemCard({ item }: SavedOrderItemCardProps) {
+function SavedOrderItemCard({ item, products }: SavedOrderItemCardProps) {
   const product = products.find((current) => current.id === item.id);
   const selectedPriceId = isPriceOptionId(item.background)
     ? item.background

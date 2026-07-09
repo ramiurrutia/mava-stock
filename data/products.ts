@@ -12,6 +12,7 @@ export type Product = {
   themeId: ProductThemeId;
   available: boolean;
   image: StaticImageData;
+  dynamic?: boolean;
   priceOptions?: readonly ProductPriceOption[];
 };
 
@@ -301,9 +302,10 @@ export function formatPriceTotal(amountInThousands: number) {
 export function getSelectedPriceTotal(
   selectedIds: string[],
   selectedPriceIds: SelectedPriceIds,
+  productList: Product[] = products,
 ) {
   return selectedIds.reduce((total, id) => {
-    const product = products.find((item) => item.id === id);
+    const product = productList.find((item) => item.id === id);
     const selectedPrice = product
       ? findPriceOption(product, selectedPriceIds[id])
       : undefined;

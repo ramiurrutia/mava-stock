@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { FramePreview } from "@/components/FramePreview";
-import { getProductPriceOptions, products } from "@/data/products";
+import { useCatalogProducts } from "@/components/useCatalogProducts";
+import { getProductPriceOptions } from "@/data/products";
 import {
   applyLocalStock,
   useAdminMode,
@@ -12,7 +13,11 @@ import {
 export function PrintStockClient() {
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const catalogProducts = useCatalogProducts();
+  const productsWithLocalStock = applyLocalStock(
+    catalogProducts,
+    unavailableProductIds,
+  );
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
 
   function printPage() {

@@ -2,10 +2,12 @@ import {
   createCustomerOrder,
   isCustomerOrdersUnavailableError,
 } from "@/lib/customerOrders";
+import { getCatalogProducts } from "@/lib/catalogProducts";
 import {
   findPriceOption,
-  products,
+  products as staticProducts,
   type PriceOptionId,
+  type Product,
   type SelectedPriceIds,
 } from "@/data/products";
 
@@ -76,12 +78,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const productsById = new Map(products.map((product) => [product.id, product]));
+  const dynamicProducts = await getCatalogProducts().catch(() => []);
+  const dynamicCodes = new Set(
+    dynamicProducts.map((product) => product.code),
+  );
+  const allProducts = [
+    ...staticProducts.filter((product) => !dynamicCodes.has(product.code)),
+    ...dynamicProducts,
+  ];
+  const productsById = new Map(
+    allProducts.map((product) => [product.id, product]),
+  );
   const selectedProducts = productIds
     .map((productId) => productsById.get(productId))
-    .filter((product): product is (typeof products)[number] =>
-      Boolean(product),
-    );
+    .filter((product): product is Product => Boolean(product));
 
   if (selectedProducts.length !== productIds.length) {
     return Response.json(

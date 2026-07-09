@@ -95,11 +95,28 @@ export async function createAdminProduct(formData: FormData) {
   }
 
   return (await response.json()) as {
+    product?: Product;
+  };
+}
+
+export async function deleteAdminProduct(code: string) {
+  const response = await fetch(
+    `/api/admin/products?code=${encodeURIComponent(code)}`,
+    {
+      headers: getAdminAuthHeaders(),
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getApiErrorMessage(response, "No se pudo borrar el item"),
+    );
+  }
+
+  return (await response.json()) as {
     product?: {
       code: string;
-      fileName: string;
-      measureCode: string;
-      name: string;
     };
   };
 }

@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
+import {
+  notifyCatalogProductsChanged,
+  useCatalogProducts,
+} from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   createAdminProduct,
+  deleteAdminProduct,
   useAdminMode,
   useFinishedOrders,
   useLocalStock,
@@ -18,13 +23,14 @@ import {
 } from "@/data/orders";
 import {
   productFolders,
-  products,
   type Product,
   type ProductMeasureCode,
 } from "@/data/products";
 
 const allStockStates = "todos";
 const allFolders = "todas";
+const recentlyAddedProductCodeKey = "mava-recently-added-product-code";
+const recentlyAddedDurationMs = 24 * 60 * 60 * 1000;
 type AdminView = "stock" | "pedidos";
 type NewProductPriceMode = "base" | "blanco" | "arpillera" | "ambos";
 
@@ -80,6 +86,43 @@ const defaultPricesByMeasureCode: Record<
     blanco: "129",
   },
 };
+function readRecentlyAddedProductCode() {
+  const value = window.localStorage.getItem(recentlyAddedProductCodeKey);
+
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(value) as {
+      code?: unknown;
+      expiresAt?: unknown;
+    };
+    const code = typeof parsed.code === "string" ? parsed.code : "";
+    const expiresAt =
+      typeof parsed.expiresAt === "number" ? parsed.expiresAt : 0;
+
+    if (!code || expiresAt <= Date.now()) {
+      window.localStorage.removeItem(recentlyAddedProductCodeKey);
+      return "";
+    }
+
+    return code;
+  } catch {
+    window.localStorage.removeItem(recentlyAddedProductCodeKey);
+    return "";
+  }
+}
+
+function writeRecentlyAddedProductCode(code: string) {
+  window.localStorage.setItem(
+    recentlyAddedProductCodeKey,
+    JSON.stringify({
+      code,
+      expiresAt: Date.now() + recentlyAddedDurationMs,
+    }),
+  );
+}
 
 export function AdminClient() {
   const { checkingAdmin, isAdmin, loginAdmin, logoutAdmin } = useAdminMode();
@@ -107,11 +150,24 @@ export function AdminClient() {
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
   const [addProductMessage, setAddProductMessage] = useState("");
+  const [deletingProductCode, setDeletingProductCode] = useState("");
+  const [deletedProductCodes, setDeletedProductCodes] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+  const [recentlyAddedProductCode, setRecentlyAddedProductCode] = useState("");
   const [newProductMeasureCode, setNewProductMeasureCode] =
     useState<ProductMeasureCode>(defaultNewProductMeasureCode);
   const [newProductPriceMode, setNewProductPriceMode] =
     useState<NewProductPriceMode>(defaultNewProductPriceMode);
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const catalogProducts = useCatalogProducts(adminProducts);
+  const visibleCatalogProducts = catalogProducts.filter(
+    (product) => !deletedProductCodes.has(product.code),
+  );
+  const productsWithLocalStock = applyLocalStock(
+    visibleCatalogProducts,
+    unavailableProductIds,
+  );
   const activeFolder = productFolders.find((item) => item.id === folder);
   const normalizedSearch = search.trim().toLowerCase();
   const availableCount = productsWithLocalStock.filter(
@@ -133,6 +189,14 @@ export function AdminClient() {
 
     return matchesSearch && matchesStockState && matchesFolder;
   });
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setRecentlyAddedProductCode(readRecentlyAddedProductCode());
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -180,28 +244,80 @@ export function AdminClient() {
 
   async function handleAddProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+
     setActionError("");
     setAddProductMessage("");
     setAddingProduct(true);
 
     try {
-      const response = await createAdminProduct(
-        new FormData(event.currentTarget),
-      );
-      const code = response.product?.code ?? "nuevo item";
+      const response = await createAdminProduct(new FormData(form));
+      const addedProduct = response.product;
+      const code = addedProduct?.code ?? "nuevo item";
 
-      event.currentTarget.reset();
+      form.reset();
       setNewProductMeasureCode(defaultNewProductMeasureCode);
       setNewProductPriceMode(defaultNewProductPriceMode);
-      setAddProductMessage(
-        `Se agrego ${code}. Si no aparece enseguida, recarga la pagina.`,
-      );
+      if (addedProduct) {
+        setDeletedProductCodes((current) => {
+          const next = new Set(current);
+          next.delete(addedProduct.code);
+
+          return next;
+        });
+        setAdminProducts((current) => [
+          ...current.filter((product) => product.code !== addedProduct.code),
+          addedProduct,
+        ]);
+        notifyCatalogProductsChanged();
+      }
+      writeRecentlyAddedProductCode(code);
+      setRecentlyAddedProductCode(code);
+      setAddProductMessage(`Se agrego ${code}.`);
+      setAddProductOpen(false);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "No se pudo agregar el item",
       );
     } finally {
       setAddingProduct(false);
+    }
+  }
+
+  async function handleDeleteProduct(product: Product) {
+    const confirmed = window.confirm(
+      `Vas a borrar ${product.code} del catalogo y del storage. Esta accion no se puede deshacer. Queres continuar?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError("");
+    setDeletingProductCode(product.code);
+
+    try {
+      await deleteAdminProduct(product.code);
+      if (product.code === recentlyAddedProductCode) {
+        window.localStorage.removeItem(recentlyAddedProductCodeKey);
+        setRecentlyAddedProductCode("");
+      }
+      setAdminProducts((current) =>
+        current.filter((item) => item.code !== product.code),
+      );
+      setDeletedProductCodes((current) => {
+        const next = new Set(current);
+        next.add(product.code);
+
+        return next;
+      });
+      notifyCatalogProductsChanged();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "No se pudo borrar el item",
+      );
+    } finally {
+      setDeletingProductCode("");
     }
   }
 
@@ -259,6 +375,25 @@ export function AdminClient() {
                 <p className="text-sm font-semibold text-red-700">
                   {actionError}
                 </p>
+              </div>
+            ) : null}
+
+            {addProductMessage ? (
+              <div
+                className="flex flex-col gap-3 border border-[#7E5E35]/30 bg-[#7E5E35]/10 p-3 sm:flex-row sm:items-center sm:justify-between"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="text-sm font-semibold text-[#5F4627]">
+                  {addProductMessage}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setAddProductMessage("")}
+                  className="h-9 border border-[#7E5E35]/30 bg-white px-3 text-xs font-semibold text-[#5F4627] transition hover:border-[#7E5E35]"
+                >
+                  Cerrar
+                </button>
               </div>
             ) : null}
 
@@ -433,10 +568,17 @@ export function AdminClient() {
                     <AdminProductCard
                       key={product.id}
                       product={product}
+                      deleting={deletingProductCode === product.code}
+                      recentlyAdded={product.code === recentlyAddedProductCode}
                       onAvailabilityChange={(available) =>
                         runStockAction(() =>
                           setProductAvailability(product.id, available),
                         )
+                      }
+                      onDelete={
+                        product.dynamic
+                          ? () => handleDeleteProduct(product)
+                          : undefined
                       }
                     />
                   ))}
@@ -457,9 +599,7 @@ export function AdminClient() {
                     <p className="text-xs font-semibold uppercase text-neutral-500">
                       Supabase
                     </p>
-                    <h2 className="text-xl font-semibold">
-                      Pedidos recibidos
-                    </h2>
+                    <h2 className="text-xl font-semibold">Pedidos recibidos</h2>
                   </div>
                   <p className="text-sm font-semibold text-neutral-500">
                     {orders.length} registros
@@ -579,109 +719,149 @@ function AddProductPanel({
       </div>
 
       {open ? (
-        <form onSubmit={onSubmit} className="mt-4 space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-2 text-sm font-semibold text-neutral-700">
-              Imagen
-              <input
-                name="image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                required
-                className="block w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 file:mr-3 file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm font-semibold text-neutral-700">
-              Medida
-              <select
-                name="measureCode"
-                value={measureCode}
-                onChange={(event) =>
-                  onMeasureCodeChange(event.target.value as ProductMeasureCode)
-                }
-                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+        <div
+          className="fixed inset-0 z-80 flex items-center justify-center bg-neutral-950/55 px-4 py-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-product-title"
+        >
+          <form
+            onSubmit={onSubmit}
+            className="max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-5"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3 border-b border-neutral-200 pb-3">
+              <div>
+                <p className="text-xs font-semibold uppercase text-[#7E5E35]">
+                  Catalogo
+                </p>
+                <h3
+                  id="add-product-title"
+                  className="mt-1 text-xl font-semibold"
+                >
+                  Agregar item
+                </h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Subi la imagen, elegi la medida y defini el precio.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="h-10 shrink-0 border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950"
               >
-                {newProductMeasureOptions.map((measure) => (
-                  <option key={measure.code} value={measure.code}>
-                    {measure.label} {measure.size} - {measure.folderLabel}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                Cerrar
+              </button>
+            </div>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <label className="space-y-2 text-sm font-semibold text-neutral-700">
-              Fondo / precio
-              <select
-                name="priceMode"
-                value={priceMode}
-                onChange={(event) =>
-                  onPriceModeChange(event.target.value as NewProductPriceMode)
-                }
-                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
-              >
-                <option value="ambos">Blanco y arpillera</option>
-                <option value="blanco">Solo blanco</option>
-                <option value="arpillera">Solo arpillera</option>
-                <option value="base">Precio unico</option>
-              </select>
-            </label>
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-2 text-sm font-semibold text-neutral-700">
+                  Imagen
+                  <input
+                    name="image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    required
+                    className="block w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 file:mr-3 file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+                  />
+                </label>
 
-            <div
-              className={`grid gap-3 ${
-                priceMode === "ambos" ? "sm:grid-cols-2" : ""
-              }`}
-            >
-              {priceMode === "base" ? (
-                <PriceInput
-                  key={`${measureCode}-base`}
-                  defaultValue={defaultPrices.base}
-                  label="Precio unico"
-                  name="basePrice"
-                />
-              ) : null}
+                <label className="space-y-2 text-sm font-semibold text-neutral-700">
+                  Medida
+                  <select
+                    name="measureCode"
+                    value={measureCode}
+                    onChange={(event) =>
+                      onMeasureCodeChange(
+                        event.target.value as ProductMeasureCode,
+                      )
+                    }
+                    className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+                  >
+                    {newProductMeasureOptions.map((measure) => (
+                      <option key={measure.code} value={measure.code}>
+                        {measure.label} {measure.size} - {measure.folderLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
-              {priceMode === "blanco" || priceMode === "ambos" ? (
-                <PriceInput
-                  key={`${measureCode}-blanco`}
-                  defaultValue={defaultPrices.blanco}
-                  label="Precio blanco"
-                  name="blancoPrice"
-                />
-              ) : null}
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                <label className="space-y-2 text-sm font-semibold text-neutral-700">
+                  Fondo / precio
+                  <select
+                    name="priceMode"
+                    value={priceMode}
+                    onChange={(event) =>
+                      onPriceModeChange(
+                        event.target.value as NewProductPriceMode,
+                      )
+                    }
+                    className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
+                  >
+                    <option value="ambos">Blanco y arpillera</option>
+                    <option value="blanco">Solo blanco</option>
+                    <option value="arpillera">Solo arpillera</option>
+                    <option value="base">Precio unico</option>
+                  </select>
+                </label>
 
-              {priceMode === "arpillera" || priceMode === "ambos" ? (
-                <PriceInput
-                  key={`${measureCode}-arpillera`}
-                  defaultValue={defaultPrices.arpillera}
-                  label="Precio arpillera"
-                  name="arpilleraPrice"
-                />
+                <div
+                  className={`grid gap-3 ${
+                    priceMode === "ambos" ? "sm:grid-cols-2" : ""
+                  }`}
+                >
+                  {priceMode === "base" ? (
+                    <PriceInput
+                      key={`${measureCode}-base`}
+                      defaultValue={defaultPrices.base}
+                      label="Precio unico"
+                      name="basePrice"
+                    />
+                  ) : null}
+
+                  {priceMode === "blanco" || priceMode === "ambos" ? (
+                    <PriceInput
+                      key={`${measureCode}-blanco`}
+                      defaultValue={defaultPrices.blanco}
+                      label="Precio blanco"
+                      name="blancoPrice"
+                    />
+                  ) : null}
+
+                  {priceMode === "arpillera" || priceMode === "ambos" ? (
+                    <PriceInput
+                      key={`${measureCode}-arpillera`}
+                      defaultValue={defaultPrices.arpillera}
+                      label="Precio arpillera"
+                      name="arpilleraPrice"
+                    />
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5 text-neutral-500">
+                  El codigo se asigna automatico segun la medida elegida.
+                </p>
+                <button
+                  type="submit"
+                  disabled={adding}
+                  className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                >
+                  {adding ? "Agregando..." : "Guardar item"}
+                </button>
+              </div>
+
+              {message ? (
+                <p className="border border-[#7E5E35]/20 bg-[#7E5E35]/10 p-3 text-sm font-semibold text-[#5F4627]">
+                  {message}
+                </p>
               ) : null}
             </div>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs leading-5 text-neutral-500">
-              El codigo se asigna automatico segun la medida elegida.
-            </p>
-            <button
-              type="submit"
-              disabled={adding}
-              className="h-11 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
-            >
-              {adding ? "Agregando..." : "Guardar item"}
-            </button>
-          </div>
-
-          {message ? (
-            <p className="border border-[#7E5E35]/20 bg-[#7E5E35]/10 p-3 text-sm font-semibold text-[#5F4627]">
-              {message}
-            </p>
-          ) : null}
-        </form>
+          </form>
+        </div>
       ) : null}
     </section>
   );
@@ -856,7 +1036,9 @@ function AdminOrderCard({
             className="grid grid-cols-[1fr_auto] gap-2 border border-neutral-100 px-2 py-1.5 text-xs"
           >
             <div className="min-w-0">
-              <p className="truncate font-mono font-semibold uppercase">{item.code}</p>
+              <p className="truncate font-mono font-semibold uppercase">
+                {item.code}
+              </p>
               <p className="truncate text-neutral-500">
                 {item.size} - {item.backgroundLabel}
               </p>
@@ -936,20 +1118,28 @@ function AdminOrderCard({
 function SummaryBox({ label, value }: SummaryBoxProps) {
   return (
     <div className="border border-neutral-200 p-3">
-      <p className="text-xs font-semibold uppercase text-neutral-500">{label}</p>
+      <p className="text-xs font-semibold uppercase text-neutral-500">
+        {label}
+      </p>
       <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
     </div>
   );
 }
 
 type AdminProductCardProps = {
+  deleting: boolean;
   product: Product;
+  recentlyAdded: boolean;
   onAvailabilityChange: (available: boolean) => Promise<unknown>;
+  onDelete?: () => Promise<unknown>;
 };
 
 function AdminProductCard({
+  deleting,
   product,
+  recentlyAdded,
   onAvailabilityChange,
+  onDelete,
 }: AdminProductCardProps) {
   return (
     <article
@@ -972,13 +1162,17 @@ function AdminProductCard({
 
       <div className="mt-3 space-y-2">
         <div>
-          <h2 className="font-mono text-sm font-semibold uppercase leading-snug">
+          <h2 className="flex flex-col font-mono text-sm font-semibold uppercase">
             {product.code}
+            {recentlyAdded ? (
+              <span className="text-[10px] font-bold uppercase text-[#5F4627]">
+                Nuevo
+              </span>
+            ) : null}
           </h2>
         </div>
         <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">
           <p className="leading-tight text-neutral-500">{product.size}</p>
-          <p className="text-neutral-500">{product.category}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -1002,6 +1196,18 @@ function AdminProductCard({
             Sin stock
           </button>
         </div>
+        {onDelete ? (
+          <button
+            type="button"
+            onClick={() => {
+              void onDelete();
+            }}
+            disabled={deleting}
+            className="h-8 w-full border border-red-800 bg-red-800/20 px-2 text-xs font-semibold text-red-800 transition hover:border-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400"
+          >
+            {deleting ? "Borrando..." : "Borrar item"}
+          </button>
+        ) : null}
       </div>
     </article>
   );

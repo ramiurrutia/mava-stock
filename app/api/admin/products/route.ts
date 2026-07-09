@@ -1,15 +1,19 @@
-import { execFile } from "node:child_process";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+import {
+  createCatalogProduct,
+  deleteCatalogProduct,
+  getCatalogProductStoragePath,
+  getDynamicStoragePath,
+  getNextCatalogProductCode,
+} from "@/lib/catalogProducts";
 import { isAdminRequest } from "@/lib/adminAuth";
+import type {
+  ProductMeasureCode,
+  ProductPriceOption,
+} from "@/data/products";
 
 export const runtime = "nodejs";
 
-const execFileAsync = promisify(execFile);
-const projectRoot = process.cwd();
-const imagesRoot = path.join(projectRoot, "app", "sources", "images");
-const metadataPath = path.join(projectRoot, "data", "product-metadata.json");
 const storageBucket =
   process.env.SUPABASE_SOURCES_BUCKET ??
   process.env.NEXT_PUBLIC_SUPABASE_SOURCES_BUCKET ??
@@ -17,39 +21,17 @@ const storageBucket =
 const storageCacheControl =
   process.env.SUPABASE_STORAGE_CACHE_CONTROL ??
   "public, max-age=31536000, immutable";
-const measureConfigs = {
-  DNG: { folder: "DNG", prefix: "DNG" },
-  SG: { folder: "SG", prefix: "SG" },
-  SGF: { folder: "SGF", prefix: "SGF" },
-  TC: { folder: "TC", prefix: "TC" },
-  TEXTURADO: { folder: "TEXTURADOS", prefix: "TEXTURADO" },
-  XG: { folder: "XG", prefix: "XG" },
-  XGM: { folder: "XGM", prefix: "XGM" },
-} as const;
 const validImageExtensions = new Set([".jpeg", ".jpg", ".png", ".webp"]);
 const validPriceModes = new Set(["base", "blanco", "arpillera", "ambos"]);
-
-type MeasureCode = keyof typeof measureConfigs;
-type MetadataProduct = {
-  code: string;
-  fileName: string;
-  measureCode: MeasureCode;
-  name: string;
-  originalFileName: string;
-  originalPath: string;
-  priceOptions?: ProductPriceOption[];
-  themeId: string;
-};
-type ProductMetadata = {
-  products?: MetadataProduct[];
-};
-type ProductPriceOption = {
-  id: "blanco" | "arpillera" | "base";
-  label: string;
-  shortLabel: string;
-  price: string;
-  amountInThousands: number;
-};
+const validMeasureCodes = new Set<ProductMeasureCode>([
+  "DNG",
+  "SG",
+  "SGF",
+  "TC",
+  "TEXTURADO",
+  "XG",
+  "XGM",
+]);
 
 function getSupabaseStorageConfig() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,6 +45,19 @@ function getSupabaseStorageConfig() {
   return {
     serviceRoleKey,
     url: url.replace(/\/$/, ""),
+  };
+}
+
+function getStorageHeaders(
+  serviceRoleKey: string,
+  extraHeaders: Record<string, string> = {},
+) {
+  return {
+    apikey: serviceRoleKey,
+    ...(serviceRoleKey.startsWith("sb_secret_")
+      ? {}
+      : { Authorization: `Bearer ${serviceRoleKey}` }),
+    ...extraHeaders,
   };
 }
 
@@ -90,15 +85,10 @@ async function uploadImageToSupabaseStorage(
     `${config.url}/storage/v1/object/${storageBucket}/${encodeStoragePath(storagePath)}`,
     {
       method: "POST",
-      headers: {
-        apikey: config.serviceRoleKey,
-        ...(config.serviceRoleKey.startsWith("sb_secret_")
-          ? {}
-          : { Authorization: `Bearer ${config.serviceRoleKey}` }),
-        "Content-Type": contentType,
+      headers: getStorageHeaders(config.serviceRoleKey, {
         "Cache-Control": storageCacheControl,
-        "x-upsert": "true",
-      },
+        "Content-Type": contentType,
+      }),
       body: new Uint8Array(imageBuffer),
     },
   );
@@ -112,14 +102,58 @@ async function uploadImageToSupabaseStorage(
   }
 }
 
+async function deleteImageFromSupabaseStorage(storagePath: string) {
+  const config = getSupabaseStorageConfig();
+
+  if (!config) {
+    throw new Error(
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para borrar la imagen del storage.",
+    );
+  }
+
+  const headers = getStorageHeaders(config.serviceRoleKey, {
+    "Content-Type": "application/json",
+  });
+  const directResponse = await fetch(
+    `${config.url}/storage/v1/object/${storageBucket}/${encodeStoragePath(storagePath)}`,
+    {
+      headers,
+      method: "DELETE",
+    },
+  );
+
+  if (directResponse.ok || directResponse.status === 404) {
+    return;
+  }
+
+  const batchResponse = await fetch(
+    `${config.url}/storage/v1/object/${storageBucket}`,
+    {
+      body: JSON.stringify({ prefixes: [storagePath] }),
+      headers,
+      method: "DELETE",
+    },
+  );
+
+  if (!batchResponse.ok && batchResponse.status !== 404) {
+    const details = await batchResponse.text().catch(() => "");
+
+    throw new Error(
+      details || "No se pudo borrar la imagen del storage de Supabase.",
+    );
+  }
+}
+
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
 
   return typeof value === "string" ? value.trim() : "";
 }
 
-function readMeasureCode(value: string): MeasureCode | null {
-  return value in measureConfigs ? (value as MeasureCode) : null;
+function readMeasureCode(value: string): ProductMeasureCode | null {
+  return validMeasureCodes.has(value as ProductMeasureCode)
+    ? (value as ProductMeasureCode)
+    : null;
 }
 
 function parsePriceInThousands(value: string) {
@@ -224,51 +258,106 @@ function getImageExtension(file: File) {
   return "";
 }
 
-function getCodeNumber(fileName: string, prefix: string) {
-  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = path
-    .basename(fileName, path.extname(fileName))
-    .match(new RegExp(`^${escapedPrefix}-(\\d{3})$`, "i"));
+function readJpegDimensions(buffer: Buffer) {
+  let offset = 2;
 
-  return match ? Number(match[1]) : null;
-}
-
-async function getNextProductCode(config: (typeof measureConfigs)[MeasureCode]) {
-  const folderPath = path.join(imagesRoot, config.folder);
-  await mkdir(folderPath, { recursive: true });
-
-  const files = await readdir(folderPath, { withFileTypes: true });
-  const highestNumber = files.reduce((highest, entry) => {
-    if (!entry.isFile()) {
-      return highest;
+  while (offset < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      break;
     }
 
-    const codeNumber = getCodeNumber(entry.name, config.prefix);
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
 
-    return codeNumber && codeNumber > highest ? codeNumber : highest;
-  }, 0);
+    if (
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf)
+    ) {
+      return {
+        height: buffer.readUInt16BE(offset + 5),
+        width: buffer.readUInt16BE(offset + 7),
+      };
+    }
 
-  return `${config.prefix}-${String(highestNumber + 1).padStart(3, "0")}`;
-}
-
-async function readMetadata(): Promise<ProductMetadata> {
-  const content = await readFile(metadataPath, "utf8").catch(() => "");
-
-  if (!content) {
-    return { products: [] };
+    offset += 2 + length;
   }
 
-  const metadata = JSON.parse(content) as ProductMetadata;
-
-  return {
-    products: Array.isArray(metadata.products) ? metadata.products : [],
-  };
+  return null;
 }
 
-async function regenerateProductAssets() {
-  await execFileAsync(process.execPath, ["scripts/generate-product-assets.mjs"], {
-    cwd: projectRoot,
-  });
+function readWebpDimensions(buffer: Buffer) {
+  if (buffer.toString("ascii", 0, 4) !== "RIFF") {
+    return null;
+  }
+
+  let offset = 12;
+
+  while (offset + 8 < buffer.length) {
+    const chunkType = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const dataOffset = offset + 8;
+
+    if (chunkType === "VP8X" && dataOffset + 10 <= buffer.length) {
+      return {
+        width:
+          1 +
+          buffer[dataOffset + 4] +
+          (buffer[dataOffset + 5] << 8) +
+          (buffer[dataOffset + 6] << 16),
+        height:
+          1 +
+          buffer[dataOffset + 7] +
+          (buffer[dataOffset + 8] << 8) +
+          (buffer[dataOffset + 9] << 16),
+      };
+    }
+
+    if (chunkType === "VP8 " && dataOffset + 10 <= buffer.length) {
+      return {
+        width: buffer.readUInt16LE(dataOffset + 6) & 0x3fff,
+        height: buffer.readUInt16LE(dataOffset + 8) & 0x3fff,
+      };
+    }
+
+    if (chunkType === "VP8L" && dataOffset + 5 <= buffer.length) {
+      return {
+        width:
+          1 +
+          buffer[dataOffset + 1] +
+          ((buffer[dataOffset + 2] & 0x3f) << 8),
+        height:
+          1 +
+          ((buffer[dataOffset + 2] & 0xc0) >> 6) +
+          (buffer[dataOffset + 3] << 2) +
+          ((buffer[dataOffset + 4] & 0x0f) << 10),
+      };
+    }
+
+    offset += 8 + chunkSize + (chunkSize % 2);
+  }
+
+  return null;
+}
+
+function readImageDimensions(buffer: Buffer, extension: string) {
+  if (extension === ".png" && buffer.length >= 24) {
+    return {
+      width: buffer.readUInt32BE(16),
+      height: buffer.readUInt32BE(20),
+    };
+  }
+
+  if (extension === ".jpg" || extension === ".jpeg") {
+    return readJpegDimensions(buffer);
+  }
+
+  if (extension === ".webp") {
+    return readWebpDimensions(buffer);
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -310,14 +399,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const config = measureConfigs[measureCode];
-  const code = await getNextProductCode(config);
-  const name = code;
-  const themeId = "abstracto";
-  const fileName = `${code}${extension}`;
-  const folderPath = path.join(imagesRoot, config.folder);
-  const filePath = path.join(folderPath, fileName);
-  const storagePath = `images/${config.folder}/${fileName}`;
   const contentType =
     image.type ||
     (extension === ".png"
@@ -326,68 +407,104 @@ export async function POST(request: Request) {
         ? "image/webp"
         : "image/jpeg");
   const imageBuffer = Buffer.from(await image.arrayBuffer());
+  const dimensions = readImageDimensions(imageBuffer, extension);
 
-  await writeFile(filePath, imageBuffer);
+  if (!dimensions) {
+    return Response.json(
+      { error: "No se pudieron leer las medidas de la imagen" },
+      { status: 400 },
+    );
+  }
+
+  let storagePath = "";
+
   try {
+    const code = await getNextCatalogProductCode(measureCode);
+    const fileName = `${code}${extension}`;
+
+    storagePath = getDynamicStoragePath(measureCode, fileName);
     await uploadImageToSupabaseStorage(storagePath, imageBuffer, contentType);
+    const product = await createCatalogProduct({
+      code,
+      height: dimensions.height,
+      measureCode,
+      priceOptions,
+      storagePath,
+      themeId: "abstracto",
+      width: dimensions.width,
+    });
+
+    if (!product) {
+      throw new Error("No se pudo crear el item en el catalogo dinamico.");
+    }
+
+    return Response.json({ product }, { status: 201 });
   } catch (error) {
+    if (storagePath) {
+      await deleteImageFromSupabaseStorage(storagePath).catch(() => {});
+    }
     console.error(error);
+
     return Response.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "No se pudo subir la imagen al storage de Supabase.",
+            : "No se pudo agregar el item.",
       },
       { status: 500 },
     );
   }
+}
 
-  const metadata = await readMetadata();
-  const nextProduct: MetadataProduct = {
-    code,
-    fileName,
-    measureCode,
-    name,
-    originalFileName: image.name,
-    originalPath: storagePath,
-    priceOptions,
-    themeId,
-  };
-  const products = [
-    ...(metadata.products ?? []).filter((product) => product.code !== code),
-    nextProduct,
-  ];
+export async function DELETE(request: Request) {
+  if (!isAdminRequest(request)) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
 
-  await writeFile(
-    metadataPath,
-    `${JSON.stringify({ products }, null, 2)}\n`,
-    "utf8",
-  );
+  const code = new URL(request.url).searchParams.get("code")?.trim();
+
+  if (!code) {
+    return Response.json({ error: "Falta el codigo del item" }, { status: 400 });
+  }
 
   try {
-    await regenerateProductAssets();
+    const storagePath = await getCatalogProductStoragePath(code);
+
+    if (!storagePath) {
+      return Response.json({
+        product: {
+          code,
+        },
+      });
+    }
+
+    const deleted = await deleteCatalogProduct(code);
+
+    if (!deleted) {
+      return Response.json({
+        product: {
+          code,
+        },
+      });
+    }
+
+    await deleteImageFromSupabaseStorage(storagePath);
+
+    return Response.json({
+      product: {
+        code: deleted.code,
+      },
+    });
   } catch (error) {
     console.error(error);
+
     return Response.json(
       {
-        code,
         error:
-          "Se guardo la imagen, pero no se pudo regenerar el catalogo automaticamente.",
+          error instanceof Error ? error.message : "No se pudo borrar el item",
       },
       { status: 500 },
     );
   }
-
-  return Response.json(
-    {
-      product: {
-        code,
-        fileName,
-        measureCode,
-        name,
-      },
-    },
-    { status: 201 },
-  );
 }

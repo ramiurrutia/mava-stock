@@ -34,3 +34,42 @@ alter table public.orders enable row level security;
 -- Esta tabla la escribe y lee Next desde Route Handlers con
 -- SUPABASE_SERVICE_ROLE_KEY. No agregamos policies publicas para no exponer
 -- pedidos desde el cliente.
+
+create table if not exists public.catalog_products (
+  code text primary key,
+  measure_code text not null,
+  storage_path text not null,
+  width integer not null,
+  height integer not null,
+  price_options jsonb not null default '[]'::jsonb,
+  theme_id text not null default 'abstracto',
+  created_at timestamptz not null default now(),
+  constraint catalog_products_measure_check check (
+    measure_code in ('DNG', 'SG', 'SGF', 'TC', 'TEXTURADO', 'XG', 'XGM')
+  ),
+  constraint catalog_products_theme_check check (
+    theme_id in (
+      'abstracto',
+      'animales',
+      'botanico',
+      'objetos',
+      'paisajes',
+      'retratos',
+      'texturas',
+      'vehiculos'
+    )
+  ),
+  constraint catalog_products_dimensions_check check (width > 0 and height > 0),
+  constraint catalog_products_price_options_is_array check (
+    jsonb_typeof(price_options) = 'array'
+  )
+);
+
+create index if not exists catalog_products_created_at_idx
+  on public.catalog_products (created_at asc);
+
+alter table public.catalog_products enable row level security;
+
+-- Catalogo dinamico para items agregados desde admin. Tambien lo leen/escriben
+-- Route Handlers con SUPABASE_SERVICE_ROLE_KEY, por eso no necesita policies
+-- publicas.

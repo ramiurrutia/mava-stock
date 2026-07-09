@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FramePreview } from "@/components/FramePreview";
+import { useCatalogProducts } from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   useAdminMode,
@@ -15,7 +16,7 @@ import {
   formatPriceTotal,
   parseSelectionParams,
   type PriceOptionId,
-  products,
+  type Product,
 } from "@/data/products";
 
 type PrintChecklistClientProps = {
@@ -49,10 +50,14 @@ function TemporarySelectionChecklist() {
   const searchParams = useSearchParams();
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
+  const catalogProducts = useCatalogProducts();
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
   const shareParams = createSelectionSearchParams(ids, selectedPriceIds);
 
-  const productsWithLocalStock = applyLocalStock(products, unavailableProductIds);
+  const productsWithLocalStock = applyLocalStock(
+    catalogProducts,
+    unavailableProductIds,
+  );
   const selectedProducts = productsWithLocalStock.filter((product) =>
     ids.includes(product.id),
   );
@@ -113,6 +118,7 @@ function SavedOrderChecklist({
   orderId,
 }: SavedOrderChecklistProps) {
   const { isAdmin } = useAdminMode();
+  const catalogProducts = useCatalogProducts();
   const today = new Intl.DateTimeFormat("es-AR").format(new Date());
   const backHref =
     order && backTarget === "pedido"
@@ -157,6 +163,7 @@ function SavedOrderChecklist({
                 key={`${item.id}-${index}`}
                 item={item}
                 index={index}
+                products={catalogProducts}
               />
             ))}
           </div>
@@ -297,7 +304,7 @@ function NotesField() {
 }
 
 type ChecklistProductCardProps = {
-  product: (typeof products)[number];
+  product: Product;
   index: number;
   selectedPriceId?: PriceOptionId;
 };
@@ -352,9 +359,14 @@ function ChecklistProductCard({
 type ChecklistOrderItemCardProps = {
   index: number;
   item: CustomerOrder["items"][number];
+  products: Product[];
 };
 
-function ChecklistOrderItemCard({ index, item }: ChecklistOrderItemCardProps) {
+function ChecklistOrderItemCard({
+  index,
+  item,
+  products,
+}: ChecklistOrderItemCardProps) {
   const product = products.find((current) => current.id === item.id);
   const selectedPriceId = isPriceOptionId(item.background)
     ? item.background

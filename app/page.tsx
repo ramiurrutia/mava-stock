@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
+import { useCatalogProducts } from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   useAdminMode,
@@ -13,7 +14,6 @@ import {
 import {
   getProductDefaultPriceId,
   productFolders,
-  products,
   type PriceOptionId,
   type ProductFolderId,
   type SelectedPriceIds,
@@ -87,12 +87,13 @@ export default function Home() {
   const showCatalogNotice = shouldShowCatalogNotice && !dismissedCatalogNotice;
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
+  const catalogProducts = useCatalogProducts();
 
   const activeFolder = productFolders.find(
     (item) => item.id === selectedFolderId,
   );
   const productsWithLocalStock = applyLocalStock(
-    products,
+    catalogProducts,
     unavailableProductIds,
   );
   const catalogVisibleProducts = productsWithLocalStock.filter(
@@ -415,6 +416,7 @@ export default function Home() {
           </div>
         ) : null}
         <SelectedBar
+          products={productsWithLocalStock}
           selectedIds={visibleSelectedIds}
           selectedPriceIds={visibleSelectedPriceIds}
           onClear={() => {
