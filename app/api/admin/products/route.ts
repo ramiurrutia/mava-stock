@@ -17,16 +17,6 @@ const storageBucket =
 const storageCacheControl =
   process.env.SUPABASE_STORAGE_CACHE_CONTROL ??
   "public, max-age=31536000, immutable";
-const validThemeIds = new Set([
-  "abstracto",
-  "animales",
-  "botanico",
-  "objetos",
-  "paisajes",
-  "retratos",
-  "texturas",
-  "vehiculos",
-]);
 const measureConfigs = {
   DNG: { folder: "DNG", prefix: "DNG" },
   SG: { folder: "SG", prefix: "SG" },
@@ -36,7 +26,7 @@ const measureConfigs = {
   XG: { folder: "XG", prefix: "XG" },
   XGM: { folder: "XGM", prefix: "XGM" },
 } as const;
-const validImageExtensions = new Set([".jpeg", ".jpg", ".png"]);
+const validImageExtensions = new Set([".jpeg", ".jpg", ".png", ".webp"]);
 const validPriceModes = new Set(["base", "blanco", "arpillera", "ambos"]);
 
 type MeasureCode = keyof typeof measureConfigs;
@@ -227,6 +217,10 @@ function getImageExtension(file: File) {
     return ".png";
   }
 
+  if (file.type === "image/webp") {
+    return ".webp";
+  }
+
   return "";
 }
 
@@ -290,8 +284,6 @@ export async function POST(request: Request) {
 
   const image = formData.get("image");
   const measureCode = readMeasureCode(readString(formData, "measureCode"));
-  const name = readString(formData, "name") || "Lamina nueva";
-  const themeId = readString(formData, "themeId") || "abstracto";
   const priceOptions = readPriceOptions(formData);
 
   if (!(image instanceof File) || image.size === 0) {
@@ -300,13 +292,6 @@ export async function POST(request: Request) {
 
   if (!measureCode) {
     return Response.json({ error: "Elegi una medida valida" }, { status: 400 });
-  }
-
-  if (!validThemeIds.has(themeId)) {
-    return Response.json(
-      { error: "Elegi una categoria valida" },
-      { status: 400 },
-    );
   }
 
   if (!priceOptions) {
@@ -320,19 +305,26 @@ export async function POST(request: Request) {
 
   if (!extension) {
     return Response.json(
-      { error: "La imagen tiene que ser JPG, JPEG o PNG" },
+      { error: "La imagen tiene que ser JPG, JPEG, PNG o WEBP" },
       { status: 400 },
     );
   }
 
   const config = measureConfigs[measureCode];
   const code = await getNextProductCode(config);
+  const name = code;
+  const themeId = "abstracto";
   const fileName = `${code}${extension}`;
   const folderPath = path.join(imagesRoot, config.folder);
   const filePath = path.join(folderPath, fileName);
   const storagePath = `images/${config.folder}/${fileName}`;
   const contentType =
-    image.type || (extension === ".png" ? "image/png" : "image/jpeg");
+    image.type ||
+    (extension === ".png"
+      ? "image/png"
+      : extension === ".webp"
+        ? "image/webp"
+        : "image/jpeg");
   const imageBuffer = Buffer.from(await image.arrayBuffer());
 
   await writeFile(filePath, imageBuffer);

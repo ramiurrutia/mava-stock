@@ -18,7 +18,6 @@ import {
 } from "@/data/orders";
 import {
   productFolders,
-  productThemes,
   products,
   type Product,
   type ProductMeasureCode,
@@ -581,13 +580,13 @@ function AddProductPanel({
 
       {open ? (
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-2 text-sm font-semibold text-neutral-700">
               Imagen
               <input
                 name="image"
                 type="file"
-                accept="image/jpeg,image/png"
+                accept="image/jpeg,image/png,image/webp"
                 required
                 className="block w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 file:mr-3 file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
               />
@@ -606,30 +605,6 @@ function AddProductPanel({
                 {newProductMeasureOptions.map((measure) => (
                   <option key={measure.code} value={measure.code}>
                     {measure.label} {measure.size} - {measure.folderLabel}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-2 text-sm font-semibold text-neutral-700">
-              Nombre
-              <input
-                name="name"
-                placeholder="Lamina nueva"
-                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm font-semibold text-neutral-700">
-              Categoria
-              <select
-                name="themeId"
-                defaultValue="abstracto"
-                className="h-11 w-full border border-neutral-300 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-950"
-              >
-                {productThemes.map((theme) => (
-                  <option key={theme.id} value={theme.id}>
-                    {theme.label}
                   </option>
                 ))}
               </select>

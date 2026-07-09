@@ -12,7 +12,7 @@ const projectRoot = path.resolve(fileURLToPath(import.meta.url), "../..");
 const imagesRoot = path.join(projectRoot, "app", "sources", "images");
 const outputPath = path.join(projectRoot, "data", "product-assets.ts");
 const metadataPath = path.join(projectRoot, "data", "product-metadata.json");
-const validExtensions = new Set([".jpeg", ".jpg", ".png"]);
+const validExtensions = new Set([".jpeg", ".jpg", ".png", ".webp"]);
 const validThemeIds = new Set([
   "abstracto",
   "animales",
