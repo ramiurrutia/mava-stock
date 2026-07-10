@@ -443,7 +443,7 @@ export function parseSelectionParams(searchParams: SelectionSearchParams) {
 }
 
 const measureSizeByCode: Record<ProductMeasureCode, string> = {
-  XG: "115 x 75",
+  XG: "115 x 65",
   SGF: "185 x 85",
   SG: "124 x 184",
   DNG: "64 x 84",
