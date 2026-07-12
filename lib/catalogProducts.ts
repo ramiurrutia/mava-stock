@@ -1,5 +1,6 @@
 import {
   products as staticProducts,
+  withProductPairInfo,
   type PriceOptionId,
   type Product,
   type ProductMeasureCode,
@@ -49,7 +50,7 @@ const measureSizes: Record<ProductMeasureCode, string> = {
   TC: "TC 42 x 52",
   TEXTURADO: "TEXTURADOS 85 x 85",
   XG: "XG 115 x 75",
-  XGM: "XGM 103 x 73",
+  XGM: "XGM 103 x 63",
 };
 const measureFolderIds: Record<ProductMeasureCode, Product["folderId"]> = {
   DNG: "medianos",
@@ -232,7 +233,7 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
     return null;
   }
 
-  return {
+  return withProductPairInfo({
     available: true,
     category: categoryLabels[themeId],
     code,
@@ -245,7 +246,7 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
     priceOptions,
     size: measureSizes[measureCode],
     themeId,
-  };
+  });
 }
 
 export function getDynamicStoragePath(

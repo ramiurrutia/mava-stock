@@ -119,8 +119,7 @@ export default function Home() {
         const matchesSearch =
           normalizedSearch.length === 0 ||
           product.name.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch) ||
-          Boolean(product.pairLabel?.toLowerCase().includes(normalizedSearch));
+          product.category.toLowerCase().includes(normalizedSearch);
 
         return matchesFolder && matchesSearch;
       }))

@@ -22,6 +22,7 @@ import {
   type OrderStatus,
 } from "@/data/orders";
 import {
+  orderProductsWithPairs,
   productFolders,
   type Product,
   type ProductMeasureCode,
@@ -174,21 +175,30 @@ export function AdminClient() {
     (product) => product.available,
   ).length;
   const unavailableCount = productsWithLocalStock.length - availableCount;
-  const filteredProducts = productsWithLocalStock.filter((product) => {
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      product.code.toLowerCase().includes(normalizedSearch) ||
-      product.name.toLowerCase().includes(normalizedSearch) ||
-      product.category.toLowerCase().includes(normalizedSearch) ||
-      product.size.toLowerCase().includes(normalizedSearch);
-    const matchesStockState =
-      stockState === allStockStates ||
-      (stockState === "stock" && product.available) ||
-      (stockState === "sin-stock" && !product.available);
-    const matchesFolder = folder === allFolders || product.folderId === folder;
+  const filteredProducts = orderProductsWithPairs(
+    productsWithLocalStock.filter((product) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        product.code.toLowerCase().includes(normalizedSearch) ||
+        product.name.toLowerCase().includes(normalizedSearch) ||
+        product.category.toLowerCase().includes(normalizedSearch) ||
+        product.size.toLowerCase().includes(normalizedSearch) ||
+        Boolean(product.pairLabel?.toLowerCase().includes(normalizedSearch)) ||
+        Boolean(
+          product.pairRelatedCodes?.some((code) =>
+            code.toLowerCase().includes(normalizedSearch),
+          ),
+        );
+      const matchesStockState =
+        stockState === allStockStates ||
+        (stockState === "stock" && product.available) ||
+        (stockState === "sin-stock" && !product.available);
+      const matchesFolder =
+        folder === allFolders || product.folderId === folder;
 
-    return matchesSearch && matchesStockState && matchesFolder;
-  });
+      return matchesSearch && matchesStockState && matchesFolder;
+    }),
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1141,6 +1151,11 @@ function AdminProductCard({
   onAvailabilityChange,
   onDelete,
 }: AdminProductCardProps) {
+  const pairKind = product.pairSize && product.pairSize > 2 ? "Serie" : "Pareja";
+  const pairText = product.pairRelatedCodes?.length
+    ? `${pairKind} con ${product.pairRelatedCodes.join(", ")}`
+    : product.pairLabel;
+
   return (
     <article
       className={`border bg-white p-3 shadow-sm ${
@@ -1158,6 +1173,11 @@ function AdminProductCard({
         >
           {product.available ? "Stock" : "Sin stock"}
         </span>
+        {product.pairGroupId ? (
+          <span className="absolute right-3 top-3 z-30 border border-[#7E5E35]/30 bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase text-[#7E5E35] shadow-sm">
+            {pairKind} {product.pairPosition}/{product.pairSize}
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-3 space-y-2">
@@ -1170,6 +1190,11 @@ function AdminProductCard({
               </span>
             ) : null}
           </h2>
+          {pairText ? (
+            <p className="mt-1 truncate text-[11px] font-semibold text-[#7E5E35]">
+              {pairText}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">
           <p className="leading-tight text-neutral-500">{product.size}</p>

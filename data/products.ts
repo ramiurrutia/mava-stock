@@ -209,7 +209,7 @@ export const productFolders = [
       {
         code: "XGM",
         label: "XGM",
-        size: "103 x 73",
+        size: "103 x 63",
       },
     ],
   },
@@ -454,7 +454,7 @@ const measureSizeByCode: Record<ProductMeasureCode, string> = {
   SG: "124 x 184",
   DNG: "64 x 84",
   TC: "42 x 52",
-  XGM: "103 x 73",
+  XGM: "103 x 63",
   TEXTURADO: "85 x 85",
 };
 
@@ -467,7 +467,7 @@ const measureDimensionsByCode: Record<
   SG: { width: 124, height: 184 },
   DNG: { width: 64, height: 84 },
   TC: { width: 42, height: 52 },
-  XGM: { width: 103, height: 73 },
+  XGM: { width: 103, height: 63 },
   TEXTURADO: { width: 85, height: 85 },
 };
 
@@ -509,10 +509,25 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function createProduct(asset: ProductAsset): Product {
-  const pairInfo = getProductPairInfo(asset.code);
+export function withProductPairInfo(product: Product): Product {
+  const pairInfo = getProductPairInfo(product.code);
+
+  if (!pairInfo) {
+    return product;
+  }
 
   return {
+    ...product,
+    pairGroupId: pairInfo.groupId,
+    pairLabel: pairInfo.label,
+    pairPosition: pairInfo.position,
+    pairRelatedCodes: pairInfo.relatedCodes,
+    pairSize: pairInfo.size,
+  };
+}
+
+function createProduct(asset: ProductAsset): Product {
+  return withProductPairInfo({
     id: slugify(asset.code),
     code: asset.code,
     name: asset.code,
@@ -523,13 +538,8 @@ function createProduct(asset: ProductAsset): Product {
     themeId: asset.themeId,
     available: true,
     image: asset.image,
-    pairGroupId: pairInfo?.groupId,
-    pairLabel: pairInfo?.label,
-    pairPosition: pairInfo?.position,
-    pairRelatedCodes: pairInfo?.relatedCodes,
-    pairSize: pairInfo?.size,
     priceOptions: asset.priceOptions,
-  };
+  });
 }
 
 export const products: Product[] = productAssets.map(createProduct);
@@ -540,15 +550,29 @@ const productPairGroupById = Object.fromEntries(
   productPairGroups.map((group) => [group.id, group]),
 ) as Record<string, (typeof productPairGroups)[number] | undefined>;
 
+const productCodeCollator = new Intl.Collator("es", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function compareProductCodes(a: Product, b: Product) {
+  return productCodeCollator.compare(a.code, b.code);
+}
+
+export function orderProductsByCode(productList: Product[]) {
+  return [...productList].sort(compareProductCodes);
+}
+
 export function orderProductsWithPairs(productList: Product[]) {
+  const sortedProducts = orderProductsByCode(productList);
   const productsByCode = new Map(
-    productList.map((product) => [product.code, product]),
+    sortedProducts.map((product) => [product.code, product]),
   );
   const includedGroupIds = new Set<string>();
   const includedProductIds = new Set<string>();
   const orderedProducts: Product[] = [];
 
-  productList.forEach((product) => {
+  sortedProducts.forEach((product) => {
     if (includedProductIds.has(product.id)) {
       return;
     }
