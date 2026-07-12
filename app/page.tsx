@@ -13,6 +13,7 @@ import {
 } from "@/components/useAdminStock";
 import {
   getProductDefaultPriceId,
+  orderProductsWithPairs,
   productFolders,
   type PriceOptionId,
   type ProductFolderId,
@@ -113,15 +114,16 @@ export default function Home() {
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = activeFolder
-    ? catalogVisibleProducts.filter((product) => {
+    ? orderProductsWithPairs(catalogVisibleProducts.filter((product) => {
         const matchesFolder = product.folderId === activeFolder.id;
         const matchesSearch =
           normalizedSearch.length === 0 ||
           product.name.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch);
+          product.category.toLowerCase().includes(normalizedSearch) ||
+          Boolean(product.pairLabel?.toLowerCase().includes(normalizedSearch));
 
         return matchesFolder && matchesSearch;
-      })
+      }))
     : [];
 
   useEffect(() => {

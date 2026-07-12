@@ -215,7 +215,7 @@ export function SelectionClient() {
               <button
                 type="button"
                 onClick={scrollToCheckout}
-                className={`checkout-floating-cta flex h-12 min-w-[220px] items-center justify-center border-2 border-neutral-950 bg-neutral-950 px-6 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(0,0,0,0.32)] transition active:translate-y-0.5 active:bg-neutral-800 ${
+                className={`checkout-floating-cta flex h-12 min-w-55 items-center justify-center border-2 border-neutral-950 bg-neutral-950 px-6 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(0,0,0,0.32)] transition active:translate-y-0.5 active:bg-neutral-800 ${
                   showCheckoutCta ? "pointer-events-auto" : "pointer-events-none"
                 }`}
               >

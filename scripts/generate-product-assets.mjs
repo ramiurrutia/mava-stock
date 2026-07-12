@@ -41,6 +41,14 @@ const folderConfigs = [
   { folder: "TEXTURADO", measureCode: "TEXTURADO", themeId: "texturas" },
 ];
 
+const folderByMeasureCode = new Map();
+
+folderConfigs.forEach((config) => {
+  if (!folderByMeasureCode.has(config.measureCode)) {
+    folderByMeasureCode.set(config.measureCode, config.folder);
+  }
+});
+
 const themeRules = [
   {
     id: "retratos",
@@ -742,24 +750,66 @@ const fallbackDesignNameByThemeId = {
 
 function readProductMetadata() {
   if (!existsSync(metadataPath)) {
-    return new Map();
+    return [];
   }
 
   const metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
   const products = Array.isArray(metadata.products) ? metadata.products : [];
 
-  return new Map(
-    products
-      .filter(
-        (item) =>
-          typeof item.code === "string" &&
-          validThemeIds.has(item.themeId),
-      )
-      .map((item) => [item.code, item]),
+  return products.filter(
+    (item) =>
+      typeof item.code === "string" &&
+      validThemeIds.has(item.themeId),
   );
 }
 
-const productMetadataByCode = readProductMetadata();
+const productMetadata = readProductMetadata();
+const productMetadataByCode = new Map(
+  productMetadata.map((item) => [item.code, item]),
+);
+const productMetadataByStoragePath = new Map(
+  productMetadata
+    .map((item) => {
+      const folder = folderByMeasureCode.get(item.measureCode);
+      const fileName = typeof item.fileName === "string" ? item.fileName : "";
+
+      return folder && fileName
+        ? [`images/${folder}/${fileName}`, item]
+        : null;
+    })
+    .filter(Boolean),
+);
+
+function readExistingManifestEntries() {
+  if (!existsSync(outputPath)) {
+    return [];
+  }
+
+  const source = readFileSync(outputPath, "utf8");
+  const entryRegex =
+    /  {\r?\n    code: "([^"]+)",\r?\n    image: createSupabaseImage\("([^"]+)", (\d+), (\d+)\),\r?\n    measureCode: "([^"]+)",\r?\n    name: "([^"]+)",\r?\n(?:(    priceOptions: .+,\r?\n))?    themeId: "([^"]+)",\r?\n  },/g;
+  const entries = [];
+
+  for (const match of source.matchAll(entryRegex)) {
+    entries.push({
+      code: match[1],
+      storagePath: match[2],
+      width: Number(match[3]),
+      height: Number(match[4]),
+      measureCode: match[5],
+      name: match[6],
+      priceOptionsSource: match[7] ?? "",
+      themeId: match[8],
+    });
+  }
+
+  return entries;
+}
+
+const existingManifestEntries = readExistingManifestEntries();
+const existingManifestByCode = new Map(
+  existingManifestEntries.map((item) => [item.code, item]),
+);
 
 function isValidPriceOption(option) {
   return (
@@ -852,6 +902,18 @@ function makeDisplayName(baseName, variantIndex, variantCount) {
 
 function getCodePrefix(config) {
   return config.codePrefix ?? config.measureCode;
+}
+
+function getCodeNumber(code) {
+  const match = code.match(/-(\d{3})$/);
+
+  return match ? Number(match[1]) : null;
+}
+
+function getCodePrefixFromCode(code) {
+  const match = code.match(/^(.+)-\d{3}$/);
+
+  return match?.[1] ?? "";
 }
 
 function getExistingCodeInfo(fileName, codePrefix) {
@@ -981,6 +1043,8 @@ function listImages(config) {
       const filePath = path.join(folderPath, entry.name);
       const dimensions = readImageDimensions(filePath);
       const stem = path.basename(entry.name, path.extname(entry.name));
+      const storagePath = makeStoragePath(filePath);
+      const metadata = productMetadataByStoragePath.get(storagePath);
       const themeId = inferThemeId(config, stem);
       const design = inferDesignInfo(stem, themeId);
 
@@ -993,7 +1057,8 @@ function listImages(config) {
         imageName: normalizeName(stem),
         importPath: makeImportPath(filePath),
         measureCode: config.measureCode,
-        storagePath: makeStoragePath(filePath),
+        metadataCode: metadata?.code,
+        storagePath,
         ...dimensions,
         themeId,
       };
@@ -1016,33 +1081,48 @@ function getUsedCodeNumbers(prefix) {
   return next;
 }
 
-function getCodeNumber(code) {
-  const match = code.match(/-(\d{3})$/);
+const reservedCodeNumbersByPrefix = [
+  ...productMetadata,
+  ...existingManifestEntries,
+].reduce((current, item) => {
+  const prefix = getCodePrefixFromCode(item.code);
+  const number = getCodeNumber(item.code);
 
-  return match ? Number(match[1]) : null;
-}
+  if (!prefix || !number) {
+    return current;
+  }
+
+  const numbers = current.get(prefix) ?? new Set();
+  numbers.add(number);
+  current.set(prefix, numbers);
+
+  return current;
+}, new Map());
 
 const resolvedAssets = assets.map((asset) => {
   const usedNumbers = getUsedCodeNumbers(asset.codePrefix);
+  const reservedNumbers =
+    reservedCodeNumbersByPrefix.get(asset.codePrefix) ?? new Set();
+  const preferredCode = asset.metadataCode ?? asset.existingCode;
 
-  if (asset.existingCode) {
-    const existingNumber = getCodeNumber(asset.existingCode);
+  if (preferredCode) {
+    const existingNumber = getCodeNumber(preferredCode);
 
     if (!existingNumber || usedNumbers.has(existingNumber)) {
-      throw new Error(`Duplicated product code: ${asset.existingCode}`);
+      throw new Error(`Duplicated product code: ${preferredCode}`);
     }
 
     usedNumbers.add(existingNumber);
 
     return {
       ...asset,
-      code: asset.existingCode,
+      code: preferredCode,
     };
   }
 
   let nextNumber = 1;
 
-  while (usedNumbers.has(nextNumber)) {
+  while (usedNumbers.has(nextNumber) || reservedNumbers.has(nextNumber)) {
     nextNumber += 1;
   }
 
@@ -1102,9 +1182,8 @@ const namedAssets = assetsWithMetadata.map((asset) => {
   };
 });
 
-const entries = namedAssets
-  .map((asset) => {
-    return `  {
+function formatGeneratedAssetEntry(asset) {
+  return `  {
     code: ${JSON.stringify(asset.code)},
     image: createSupabaseImage(${JSON.stringify(asset.storagePath)}, ${asset.width}, ${asset.height}),
     measureCode: ${JSON.stringify(asset.measureCode)},
@@ -1115,8 +1194,25 @@ const entries = namedAssets
         : ""
     }themeId: ${JSON.stringify(asset.themeId)},
   },`;
-  })
-  .join("\n");
+}
+
+function formatExistingManifestEntry(asset) {
+  return `  {
+    code: ${JSON.stringify(asset.code)},
+    image: createSupabaseImage(${JSON.stringify(asset.storagePath)}, ${asset.width}, ${asset.height}),
+    measureCode: ${JSON.stringify(asset.measureCode)},
+    name: ${JSON.stringify(asset.name)},
+    ${asset.priceOptionsSource}themeId: ${JSON.stringify(asset.themeId)},
+  },`;
+}
+
+const newAssets = namedAssets.filter(
+  (asset) => !existingManifestByCode.has(asset.code),
+);
+const entries = [
+  ...existingManifestEntries.map(formatExistingManifestEntry),
+  ...newAssets.map(formatGeneratedAssetEntry),
+].join("\n");
 
 const output = `import type { StaticImageData } from "next/image";
 import { createSupabaseImage } from "@/data/supabase-storage";
@@ -1151,4 +1247,6 @@ ${entries}
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, output);
-console.log(`Generated ${resolvedAssets.length} product assets.`);
+console.log(
+  `Generated ${existingManifestEntries.length + newAssets.length} product assets.`,
+);

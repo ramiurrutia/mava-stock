@@ -1,5 +1,6 @@
 import type { StaticImageData } from "next/image";
 import { productAssets, type ProductAsset } from "@/data/product-assets";
+import { getProductPairInfo, productPairGroups } from "@/data/product-pairs";
 
 export type Product = {
   id: string;
@@ -13,6 +14,11 @@ export type Product = {
   available: boolean;
   image: StaticImageData;
   dynamic?: boolean;
+  pairGroupId?: string;
+  pairLabel?: string;
+  pairPosition?: number;
+  pairRelatedCodes?: readonly string[];
+  pairSize?: number;
   priceOptions?: readonly ProductPriceOption[];
 };
 
@@ -504,6 +510,8 @@ function slugify(value: string) {
 }
 
 function createProduct(asset: ProductAsset): Product {
+  const pairInfo = getProductPairInfo(asset.code);
+
   return {
     id: slugify(asset.code),
     code: asset.code,
@@ -515,6 +523,11 @@ function createProduct(asset: ProductAsset): Product {
     themeId: asset.themeId,
     available: true,
     image: asset.image,
+    pairGroupId: pairInfo?.groupId,
+    pairLabel: pairInfo?.label,
+    pairPosition: pairInfo?.position,
+    pairRelatedCodes: pairInfo?.relatedCodes,
+    pairSize: pairInfo?.size,
     priceOptions: asset.priceOptions,
   };
 }
@@ -522,3 +535,46 @@ function createProduct(asset: ProductAsset): Product {
 export const products: Product[] = productAssets.map(createProduct);
 
 export const categories = productThemes.map((theme) => theme.label);
+
+const productPairGroupById = Object.fromEntries(
+  productPairGroups.map((group) => [group.id, group]),
+) as Record<string, (typeof productPairGroups)[number] | undefined>;
+
+export function orderProductsWithPairs(productList: Product[]) {
+  const productsByCode = new Map(
+    productList.map((product) => [product.code, product]),
+  );
+  const includedGroupIds = new Set<string>();
+  const includedProductIds = new Set<string>();
+  const orderedProducts: Product[] = [];
+
+  productList.forEach((product) => {
+    if (includedProductIds.has(product.id)) {
+      return;
+    }
+
+    const pairInfo = getProductPairInfo(product.code);
+    const pairGroup = pairInfo
+      ? productPairGroupById[pairInfo.groupId]
+      : undefined;
+
+    if (!pairInfo || !pairGroup || includedGroupIds.has(pairInfo.groupId)) {
+      orderedProducts.push(product);
+      includedProductIds.add(product.id);
+      return;
+    }
+
+    includedGroupIds.add(pairInfo.groupId);
+
+    pairGroup.codes.forEach((code) => {
+      const pairedProduct = productsByCode.get(code);
+
+      if (pairedProduct && !includedProductIds.has(pairedProduct.id)) {
+        orderedProducts.push(pairedProduct);
+        includedProductIds.add(pairedProduct.id);
+      }
+    });
+  });
+
+  return orderedProducts;
+}

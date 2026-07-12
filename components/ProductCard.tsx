@@ -26,6 +26,9 @@ export function ProductCard({
   const isUnavailable = !product.available;
   const isLandscape = isProductLandscape(product);
   const priceOptions = getProductPriceOptions(product);
+  const pairText = product.pairRelatedCodes?.length
+    ? `Hace pareja con ${product.pairRelatedCodes.join(", ")}`
+    : product.pairLabel;
   let priceGridClass = "grid-cols-2";
 
   if (priceOptions.length === 1) {
@@ -81,6 +84,12 @@ export function ProductCard({
               Seleccionado
             </span>
           ) : null}
+
+          {product.pairGroupId ? (
+            <span className="absolute right-2.5 top-2.5 z-30 border border-[#7E5E35]/30 bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase text-[#7E5E35]">
+              Pareja {product.pairPosition}/{product.pairSize}
+            </span>
+          ) : null}
         </div>
 
         <div
@@ -94,6 +103,11 @@ export function ProductCard({
             <h2 className="truncate font-mono text-[13px] font-semibold uppercase leading-snug text-neutral-950">
               {product.code}
             </h2>
+            {pairText ? (
+              <p className="mt-1 truncate text-[11px] font-semibold text-[#7E5E35]">
+                {pairText}
+              </p>
+            ) : null}
           </div>
 
           <p
