@@ -10,6 +10,10 @@ import {
 import { createSupabaseImage } from "@/data/supabase-storage";
 
 const catalogProductsTable = "catalog_products";
+const storageBucket =
+  process.env.SUPABASE_SOURCES_BUCKET ??
+  process.env.NEXT_PUBLIC_SUPABASE_SOURCES_BUCKET ??
+  "sources";
 const productThemeIds = new Set<ProductThemeId>([
   "abstracto",
   "animales",
@@ -34,6 +38,7 @@ const priceOptionIds = new Set<PriceOptionId>([
   "base",
   "blanco",
 ]);
+const storageImageExtensions = new Set([".jpeg", ".jpg", ".png", ".webp"]);
 const measureFolders: Record<ProductMeasureCode, string> = {
   DNG: "DNG",
   SG: "SG",
@@ -49,8 +54,20 @@ const measureSizes: Record<ProductMeasureCode, string> = {
   SGF: "SGF 185 x 85",
   TC: "TC 42 x 52",
   TEXTURADO: "TEXTURADOS 85 x 85",
-  XG: "XG 115 x 75",
+  XG: "XG 115 x 65",
   XGM: "XGM 103 x 63",
+};
+const fallbackImageDimensions: Record<
+  ProductMeasureCode,
+  { width: number; height: number }
+> = {
+  DNG: { width: 640, height: 840 },
+  SG: { width: 1240, height: 1840 },
+  SGF: { width: 1850, height: 850 },
+  TC: { width: 420, height: 520 },
+  TEXTURADO: { width: 850, height: 850 },
+  XG: { width: 1150, height: 650 },
+  XGM: { width: 1030, height: 630 },
 };
 const measureFolderIds: Record<ProductMeasureCode, Product["folderId"]> = {
   DNG: "medianos",
@@ -72,6 +89,10 @@ const categoryLabels: Record<ProductThemeId, string> = {
   vehiculos: "Vehiculos",
 };
 
+const staticProductByCode = new Map(
+  staticProducts.map((product) => [product.code.toUpperCase(), product]),
+);
+
 type CatalogProductRow = {
   code?: unknown;
   created_at?: unknown;
@@ -81,6 +102,16 @@ type CatalogProductRow = {
   storage_path?: unknown;
   theme_id?: unknown;
   width?: unknown;
+};
+
+type StorageObjectRow = {
+  name?: unknown;
+};
+
+type StorageImageEntry = {
+  fileName: string;
+  measureCode: ProductMeasureCode;
+  storagePath: string;
 };
 
 export type CreateCatalogProductInput = {
@@ -183,12 +214,116 @@ async function fetchCatalogProducts(pathname: string, init: RequestInit = {}) {
   return response;
 }
 
+async function fetchStorageObjects(prefix: string) {
+  const config = getRemoteCatalogConfig();
+
+  if (!config) {
+    throw new CatalogProductsUnavailableError(
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+
+  const response = await fetch(
+    `${config.url}/storage/v1/object/list/${storageBucket}`,
+    {
+      body: JSON.stringify({
+        limit: 1000,
+        offset: 0,
+        prefix,
+        sortBy: {
+          column: "name",
+          order: "asc",
+        },
+      }),
+      cache: "no-store",
+      headers: getSupabaseHeaders(config.serviceRoleKey),
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+
+    throw new CatalogProductsUnavailableError(
+      details || "No se pudo listar el bucket de imagenes de Supabase.",
+    );
+  }
+
+  const rows = (await response.json().catch(() => [])) as unknown;
+
+  return Array.isArray(rows) ? (rows as StorageObjectRow[]) : [];
+}
+
 function readString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
 function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function getFileExtension(fileName: string) {
+  const dotIndex = fileName.lastIndexOf(".");
+
+  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
+}
+
+function getFileStem(fileName: string) {
+  const dotIndex = fileName.lastIndexOf(".");
+
+  return dotIndex >= 0 ? fileName.slice(0, dotIndex) : fileName;
+}
+
+function getDefaultThemeId(measureCode: ProductMeasureCode): ProductThemeId {
+  return measureCode === "TEXTURADO" ? "texturas" : "abstracto";
+}
+
+function getTableRowsByStoragePath(rows: CatalogProductRow[]) {
+  return new Map(
+    rows
+      .map((row) => [readString(row.storage_path), row] as const)
+      .filter(([storagePath]) => Boolean(storagePath)),
+  );
+}
+
+async function getCatalogProductRows() {
+  const response = await fetchCatalogProducts(
+    `${catalogProductsTable}?select=code,measure_code,storage_path,width,height,price_options,theme_id&order=created_at.asc`,
+  );
+
+  return (await response.json()) as CatalogProductRow[];
+}
+
+async function getStorageImageEntries() {
+  const measureEntries = Object.entries(measureFolders) as [
+    ProductMeasureCode,
+    string,
+  ][];
+  const entryGroups = await Promise.all(
+    measureEntries.map(async ([measureCode, folder]) => {
+      const prefix = `images/${folder}`;
+      const rows = await fetchStorageObjects(prefix);
+
+      return rows.flatMap((row): StorageImageEntry[] => {
+        const fileName = readString(row.name);
+        const extension = getFileExtension(fileName);
+
+        if (!fileName || !storageImageExtensions.has(extension)) {
+          return [];
+        }
+
+        return [
+          {
+            fileName,
+            measureCode,
+            storagePath: `${prefix}/${fileName}`,
+          },
+        ];
+      });
+    }),
+  );
+
+  return entryGroups.flat();
 }
 
 function normalizePriceOptions(value: unknown): ProductPriceOption[] {
@@ -249,6 +384,46 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
   });
 }
 
+function createProductFromStorageEntry(
+  entry: StorageImageEntry,
+  row?: CatalogProductRow,
+): Product | null {
+  const code = getFileStem(entry.fileName).toUpperCase();
+  const staticProduct = staticProductByCode.get(code);
+  const rowThemeId = readString(row?.theme_id) as ProductThemeId;
+  const themeId = productThemeIds.has(rowThemeId)
+    ? rowThemeId
+    : staticProduct?.themeId ?? getDefaultThemeId(entry.measureCode);
+  const rowPriceOptions = normalizePriceOptions(row?.price_options);
+  const rowWidth = readNumber(row?.width);
+  const rowHeight = readNumber(row?.height);
+  const fallbackDimensions = fallbackImageDimensions[entry.measureCode];
+  const width = rowWidth || staticProduct?.image.width || fallbackDimensions.width;
+  const height =
+    rowHeight || staticProduct?.image.height || fallbackDimensions.height;
+
+  if (!code || !productMeasureCodes.has(entry.measureCode)) {
+    return null;
+  }
+
+  return withProductPairInfo({
+    available: true,
+    category: categoryLabels[themeId],
+    code,
+    dynamic: Boolean(row),
+    folderId: measureFolderIds[entry.measureCode],
+    id: slugify(code),
+    image: createSupabaseImage(entry.storagePath, width, height),
+    measureCode: entry.measureCode,
+    name: staticProduct?.name ?? code,
+    priceOptions: rowPriceOptions.length
+      ? rowPriceOptions
+      : staticProduct?.priceOptions,
+    size: measureSizes[entry.measureCode],
+    themeId,
+  });
+}
+
 export function getDynamicStoragePath(
   measureCode: ProductMeasureCode,
   fileName: string,
@@ -257,13 +432,19 @@ export function getDynamicStoragePath(
 }
 
 export async function getCatalogProducts() {
-  const response = await fetchCatalogProducts(
-    `${catalogProductsTable}?select=code,measure_code,storage_path,width,height,price_options,theme_id&order=created_at.asc`,
-  );
-  const rows = (await response.json()) as CatalogProductRow[];
+  const [storageEntries, rows] = await Promise.all([
+    getStorageImageEntries(),
+    getCatalogProductRows().catch(() => []),
+  ]);
+  const rowsByStoragePath = getTableRowsByStoragePath(rows);
 
-  return rows
-    .map(normalizeCatalogProduct)
+  return storageEntries
+    .map((entry) =>
+      createProductFromStorageEntry(
+        entry,
+        rowsByStoragePath.get(entry.storagePath),
+      ),
+    )
     .filter((product): product is Product => Boolean(product));
 }
 

@@ -8,6 +8,7 @@ import {
 } from "@/data/products";
 
 type FramePreviewProps = {
+  onArtworkError?: () => void;
   product: Pick<Product, "code" | "image" | "measureCode">;
   selectedPriceId?: PriceOptionId;
 };
@@ -15,7 +16,11 @@ type FramePreviewProps = {
 const burlapLayer = createSupabaseImage("layers/ARPILLERA.png", 839, 1170);
 const whiteLayer = createSupabaseImage("layers/BLANCO.png", 1805, 2540);
 
-export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
+export function FramePreview({
+  onArtworkError,
+  product,
+  selectedPriceId,
+}: FramePreviewProps) {
   const frameLayer = selectedPriceId === "arpillera" ? burlapLayer : whiteLayer;
   const { width, height } = getProductPreviewDimensions(product);
   const aspectRatio = width / height;
@@ -93,6 +98,7 @@ export function FramePreview({ product, selectedPriceId }: FramePreviewProps) {
           sizes={artSizes}
           className="h-full w-full object-cover"
           aria-hidden="true"
+          onError={() => onArtworkError?.()}
         />
       </div>
     </div>

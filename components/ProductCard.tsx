@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   getProductPriceOptions,
   isProductLandscape,
@@ -23,10 +24,16 @@ export function ProductCard({
   onToggle,
   onPriceToggle,
 }: ProductCardProps) {
+  const [failedArtworkSrc, setFailedArtworkSrc] = useState("");
   const isUnavailable = !product.available;
   const isLandscape = isProductLandscape(product);
   const priceOptions = getProductPriceOptions(product);
+  const artworkFailed = failedArtworkSrc === product.image.src;
   let priceGridClass = "grid-cols-2";
+
+  if (artworkFailed) {
+    return null;
+  }
 
   if (priceOptions.length === 1) {
     priceGridClass = "grid-cols-1";
@@ -63,7 +70,11 @@ export function ProductCard({
           }`}
         >
           <div className={isLandscape ? "mx-auto w-full max-w-[86%]" : ""}>
-            <FramePreview product={product} selectedPriceId={selectedPriceId} />
+            <FramePreview
+              product={product}
+              selectedPriceId={selectedPriceId}
+              onArtworkError={() => setFailedArtworkSrc(product.image.src)}
+            />
           </div>
 
           {selected ? (

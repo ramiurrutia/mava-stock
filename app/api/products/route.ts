@@ -4,7 +4,7 @@ import {
 } from "@/lib/catalogProducts";
 
 const cacheHeaders = {
-  "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+  "Cache-Control": "no-store",
 };
 
 export async function GET() {

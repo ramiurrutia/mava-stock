@@ -33,10 +33,6 @@ export function notifyCatalogProductsChanged() {
 }
 
 async function fetchDynamicProducts(forceRefresh = false) {
-  if (!forceRefresh && cachedDynamicProducts) {
-    return cachedDynamicProducts;
-  }
-
   if (!forceRefresh && pendingDynamicProductsRequest) {
     return pendingDynamicProductsRequest;
   }
@@ -44,7 +40,7 @@ async function fetchDynamicProducts(forceRefresh = false) {
   const url = forceRefresh
     ? `/api/products?refresh=${Date.now()}`
     : "/api/products";
-  const request = fetch(url, forceRefresh ? { cache: "no-store" } : undefined)
+  const request = fetch(url, { cache: "no-store" })
     .then(async (response) => {
       if (!response.ok) {
         return cachedDynamicProducts ?? [];
@@ -72,7 +68,9 @@ async function fetchDynamicProducts(forceRefresh = false) {
 }
 
 export function useCatalogProducts(initialProducts: Product[] = staticProducts) {
-  const [dynamicProducts, setDynamicProducts] = useState<Product[]>([]);
+  const [dynamicProducts, setDynamicProducts] = useState<Product[] | null>(
+    null,
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -102,9 +100,10 @@ export function useCatalogProducts(initialProducts: Product[] = staticProducts) 
     const localDynamicProducts = initialProducts.filter(
       (product) => product.dynamic,
     );
+    const bucketProducts = dynamicProducts ?? [];
 
     return mergeCatalogProducts(staticProducts, [
-      ...dynamicProducts,
+      ...bucketProducts,
       ...localDynamicProducts,
     ]);
   }, [dynamicProducts, initialProducts]);
