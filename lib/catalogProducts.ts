@@ -10,6 +10,7 @@ import {
 import { createSupabaseImage } from "@/data/supabase-storage";
 
 const catalogProductsTable = "catalog_products";
+const catalogProductOrderTable = "catalog_product_order";
 const storageBucket =
   process.env.SUPABASE_SOURCES_BUCKET ??
   process.env.NEXT_PUBLIC_SUPABASE_SOURCES_BUCKET ??
@@ -104,6 +105,11 @@ type CatalogProductRow = {
   width?: unknown;
 };
 
+type CatalogProductOrderRow = {
+  code?: unknown;
+  sort_order?: unknown;
+};
+
 type StorageObjectRow = {
   name?: unknown;
 };
@@ -122,6 +128,20 @@ export type CreateCatalogProductInput = {
   storagePath: string;
   themeId: ProductThemeId;
   width: number;
+};
+
+export type ExistingCatalogProduct = {
+  code: string;
+  height: number;
+  measureCode: ProductMeasureCode;
+  priceOptions: ProductPriceOption[];
+  storagePath: string;
+  themeId: ProductThemeId;
+  width: number;
+};
+
+export type UpdateCatalogProductInput = CreateCatalogProductInput & {
+  currentCode: string;
 };
 
 export type DeletedCatalogProduct = {
@@ -262,6 +282,12 @@ function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function readOptionalNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
 function getFileExtension(fileName: string) {
   const dotIndex = fileName.lastIndexOf(".");
 
@@ -292,6 +318,30 @@ async function getCatalogProductRows() {
   );
 
   return (await response.json()) as CatalogProductRow[];
+}
+
+async function getCatalogProductOrderRows() {
+  const response = await fetchCatalogProducts(
+    `${catalogProductOrderTable}?select=code,sort_order&order=sort_order.asc`,
+  );
+
+  return (await response.json()) as CatalogProductOrderRow[];
+}
+
+function getCatalogProductOrderByCode(rows: CatalogProductOrderRow[]) {
+  return new Map(
+    rows
+      .map((row) => {
+        const code = readString(row.code).toUpperCase();
+        const sortOrder = readOptionalNumber(row.sort_order);
+
+        return [code, sortOrder] as const;
+      })
+      .filter(
+        (entry): entry is readonly [string, number] =>
+          Boolean(entry[0]) && typeof entry[1] === "number",
+      ),
+  );
 }
 
 async function getStorageImageEntries() {
@@ -379,6 +429,7 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
     measureCode,
     name: code,
     priceOptions,
+    sortOrder: undefined,
     size: measureSizes[measureCode],
     themeId,
   });
@@ -387,6 +438,7 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
 function createProductFromStorageEntry(
   entry: StorageImageEntry,
   row?: CatalogProductRow,
+  sortOrder?: number,
 ): Product | null {
   const code = getFileStem(entry.fileName).toUpperCase();
   const staticProduct = staticProductByCode.get(code);
@@ -419,6 +471,7 @@ function createProductFromStorageEntry(
     priceOptions: rowPriceOptions.length
       ? rowPriceOptions
       : staticProduct?.priceOptions,
+    sortOrder,
     size: measureSizes[entry.measureCode],
     themeId,
   });
@@ -432,17 +485,20 @@ export function getDynamicStoragePath(
 }
 
 export async function getCatalogProducts() {
-  const [storageEntries, rows] = await Promise.all([
+  const [storageEntries, rows, orderRows] = await Promise.all([
     getStorageImageEntries(),
     getCatalogProductRows().catch(() => []),
+    getCatalogProductOrderRows().catch(() => []),
   ]);
   const rowsByStoragePath = getTableRowsByStoragePath(rows);
+  const orderByCode = getCatalogProductOrderByCode(orderRows);
 
   return storageEntries
     .map((entry) =>
       createProductFromStorageEntry(
         entry,
         rowsByStoragePath.get(entry.storagePath),
+        orderByCode.get(getFileStem(entry.fileName).toUpperCase()),
       ),
     )
     .filter((product): product is Product => Boolean(product));
@@ -481,6 +537,94 @@ export async function getCatalogProductStoragePath(code: string) {
   const storagePath = readString(row?.storage_path);
 
   return storagePath || null;
+}
+
+export async function getCatalogProductByCode(code: string) {
+  const response = await fetchCatalogProducts(
+    `${catalogProductsTable}?select=code,measure_code,storage_path,width,height,price_options,theme_id&code=ilike.${encodeURIComponent(code)}`,
+  );
+  const rows = (await response.json()) as CatalogProductRow[];
+  const row = rows[0];
+  const productCode = readString(row?.code);
+  const measureCode = readString(row?.measure_code) as ProductMeasureCode;
+  const themeId = readString(row?.theme_id) as ProductThemeId;
+  const storagePath = readString(row?.storage_path);
+  const width = readNumber(row?.width);
+  const height = readNumber(row?.height);
+
+  if (
+    !productCode ||
+    !storagePath ||
+    !productMeasureCodes.has(measureCode) ||
+    !productThemeIds.has(themeId) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    code: productCode,
+    height,
+    measureCode,
+    priceOptions: normalizePriceOptions(row?.price_options),
+    storagePath,
+    themeId,
+    width,
+  } satisfies ExistingCatalogProduct;
+}
+
+export async function updateCatalogProduct(input: UpdateCatalogProductInput) {
+  const response = await fetchCatalogProducts(
+    `${catalogProductsTable}?code=eq.${encodeURIComponent(input.currentCode)}&select=code,measure_code,storage_path,width,height,price_options,theme_id`,
+    {
+      body: JSON.stringify({
+        code: input.code,
+        height: input.height,
+        measure_code: input.measureCode,
+        price_options: input.priceOptions,
+        storage_path: input.storagePath,
+        theme_id: input.themeId,
+        width: input.width,
+      }),
+      headers: {
+        Prefer: "return=representation",
+      },
+      method: "PATCH",
+    },
+  );
+  const rows = (await response.json()) as CatalogProductRow[];
+
+  return normalizeCatalogProduct(rows[0] ?? {});
+}
+
+export async function updateCatalogProductOrder(codes: string[]) {
+  const uniqueCodes = Array.from(
+    new Set(codes.map((code) => code.trim().toUpperCase()).filter(Boolean)),
+  );
+
+  if (uniqueCodes.length === 0) {
+    return [];
+  }
+
+  const response = await fetchCatalogProducts(
+    `${catalogProductOrderTable}?on_conflict=code&select=code,sort_order`,
+    {
+      body: JSON.stringify(
+        uniqueCodes.map((code, index) => ({
+          code,
+          sort_order: index,
+          updated_at: new Date().toISOString(),
+        })),
+      ),
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      method: "POST",
+    },
+  );
+
+  return (await response.json()) as CatalogProductOrderRow[];
 }
 
 export async function deleteCatalogProduct(

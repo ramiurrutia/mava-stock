@@ -73,3 +73,15 @@ alter table public.catalog_products enable row level security;
 -- Catalogo dinamico para items agregados desde admin. Tambien lo leen/escriben
 -- Route Handlers con SUPABASE_SERVICE_ROLE_KEY, por eso no necesita policies
 -- publicas.
+
+create table if not exists public.catalog_product_order (
+  code text primary key,
+  sort_order integer not null,
+  updated_at timestamptz not null default now(),
+  constraint catalog_product_order_sort_order_check check (sort_order >= 0)
+);
+
+create index if not exists catalog_product_order_sort_order_idx
+  on public.catalog_product_order (sort_order asc);
+
+alter table public.catalog_product_order enable row level security;

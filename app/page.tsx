@@ -13,10 +13,11 @@ import {
 } from "@/components/useAdminStock";
 import {
   getProductDefaultPriceId,
-  orderProductsWithPairs,
+  orderProductsByManualOrder,
   productFolders,
   type PriceOptionId,
   type ProductFolderId,
+  type ProductMeasureCode,
   type SelectedPriceIds,
 } from "@/data/products";
 
@@ -50,11 +51,28 @@ function getCatalogNoticeServerSnapshot() {
   return false;
 }
 
-function getCatalogUrl(folderId: ProductFolderId | null) {
+function getMeasureSectionId(measureCode: ProductMeasureCode) {
+  return `catalog-section-${measureCode.toLowerCase()}`;
+}
+
+function getMeasureUrlValue(
+  folderId: ProductFolderId,
+  measureCode: ProductMeasureCode,
+) {
+  return `${folderId}-${measureCode.toLowerCase()}`;
+}
+
+function getCatalogUrl(
+  folderId: ProductFolderId | null,
+  measureCode: ProductMeasureCode | null = null,
+) {
   const url = new URL(window.location.href);
 
   if (folderId) {
-    url.searchParams.set(folderUrlParam, folderId);
+    url.searchParams.set(
+      folderUrlParam,
+      measureCode ? getMeasureUrlValue(folderId, measureCode) : folderId,
+    );
   } else {
     url.searchParams.delete(folderUrlParam);
   }
@@ -62,19 +80,50 @@ function getCatalogUrl(folderId: ProductFolderId | null) {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
-function getFolderIdFromUrl() {
+function getCatalogRouteFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  const folderId = params.get(folderUrlParam);
+  const value = params.get(folderUrlParam);
+  const exactFolder = productFolders.find((folder) => folder.id === value);
 
-  return productFolders.some((folder) => folder.id === folderId)
-    ? (folderId as ProductFolderId)
-    : null;
+  if (exactFolder) {
+    return {
+      folderId: exactFolder.id,
+      measureCode: null,
+    };
+  }
+
+  for (const folder of productFolders) {
+    const prefix = `${folder.id}-`;
+
+    if (!value?.startsWith(prefix)) {
+      continue;
+    }
+
+    const measureSlug = value.slice(prefix.length);
+    const measure = folder.measures.find(
+      (item) => item.code.toLowerCase() === measureSlug,
+    );
+
+    if (measure) {
+      return {
+        folderId: folder.id,
+        measureCode: measure.code,
+      };
+    }
+  }
+
+  return {
+    folderId: null,
+    measureCode: null,
+  };
 }
 
 export default function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedFolderId, setSelectedFolderId] =
     useState<ProductFolderId | null>(null);
+  const [selectedMeasureCode, setSelectedMeasureCode] =
+    useState<ProductMeasureCode | null>(null);
   const [selectedPriceIds, setSelectedPriceIds] = useState<SelectedPriceIds>(
     {},
   );
@@ -116,7 +165,7 @@ export default function Home() {
   const filteredProductSections = activeFolder
     ? activeFolder.measures
         .map((measure) => {
-          const measureProducts = orderProductsWithPairs(
+          const measureProducts = orderProductsByManualOrder(
             catalogVisibleProducts.filter((product) => {
               const matchesFolder = product.folderId === activeFolder.id;
               const matchesMeasure = product.measureCode === measure.code;
@@ -143,7 +192,10 @@ export default function Home() {
 
   useEffect(() => {
     function syncFolderFromUrl() {
-      setSelectedFolderId(getFolderIdFromUrl());
+      const route = getCatalogRouteFromUrl();
+
+      setSelectedFolderId(route.folderId);
+      setSelectedMeasureCode(route.measureCode);
       setSearch("");
     }
 
@@ -154,6 +206,24 @@ export default function Home() {
       window.removeEventListener("popstate", syncFolderFromUrl);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedMeasureCode || filteredProductCount === 0) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(getMeasureSectionId(selectedMeasureCode))
+        ?.scrollIntoView({
+          block: "start",
+        });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [filteredProductCount, selectedMeasureCode]);
 
   function getFolderProductCount(folderId: ProductFolderId) {
     return catalogVisibleProducts.filter(
@@ -226,12 +296,24 @@ export default function Home() {
 
   function selectFolder(folderId: ProductFolderId) {
     setSelectedFolderId(folderId);
+    setSelectedMeasureCode(null);
     setSearch("");
     window.history.pushState(null, "", getCatalogUrl(folderId));
   }
 
+  function selectMeasure(
+    folderId: ProductFolderId,
+    measureCode: ProductMeasureCode,
+  ) {
+    setSelectedFolderId(folderId);
+    setSelectedMeasureCode(measureCode);
+    setSearch("");
+    window.history.pushState(null, "", getCatalogUrl(folderId, measureCode));
+  }
+
   function returnToSizes() {
     setSelectedFolderId(null);
+    setSelectedMeasureCode(null);
     setSearch("");
     window.history.replaceState(null, "", getCatalogUrl(null));
   }
@@ -344,34 +426,43 @@ export default function Home() {
               className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
               {productFolders.map((item) => (
-                <button
+                <article
                   key={item.id}
-                  type="button"
-                  onClick={() => selectFolder(item.id)}
                   className="group min-h-29 border border-neutral-300 bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-neutral-950 hover:shadow-md"
                 >
-                  <span className="block text-lg font-semibold leading-tight">
-                    {item.label}
-                  </span>
-                  <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#7E5E35]">
-                    {getFolderProductCount(item.id)} cuadros disponibles
-                  </span>
-                  <span className="mt-4 flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectFolder(item.id)}
+                    className="block w-full text-left"
+                  >
+                    <span className="block text-lg font-semibold leading-tight text-center">
+                      {item.label}
+                    </span>
+                    <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#7E5E35] text-center">
+                      {getFolderProductCount(item.id)} cuadros disponibles
+                    </span>
+                  </button>
+                  <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center">
                     {item.measures.map((measure) => (
-                      <span
+                      <button
                         key={measure.code}
-                        className="border border-neutral-200 bg-neutral-50 px-2 py-1 text-sm font-semibold text-neutral-700 transition group-hover:border-[#7E5E35]/40"
+                        type="button"
+                        onClick={() => selectMeasure(item.id, measure.code)}
+                        className="group/measure inline-flex items-center gap-1.5 border border-neutral-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-[#7E5E35] hover:shadow-md active:translate-y-0 group-hover:border-[#7E5E35]/50"
                       >
-                        <span className="text-neutral-950">
+                        <span className="text-neutral-950 transition group-hover/measure:text-current">
                           {measure.label}
                         </span>{" "}
-                        <span className="font-medium text-neutral-500">
+                        <span className="font-medium text-neutral-500 transition group-hover/measure:text-current">
                           {measure.size}
                         </span>
-                      </span>
+                        <span aria-hidden="true" className="text-xs">
+                          →
+                        </span>
+                      </button>
                     ))}
-                  </span>
-                </button>
+                  </div>
+                </article>
               ))}
             </div>
           </section>
@@ -396,18 +487,19 @@ export default function Home() {
                 {filteredProductSections.map((section) => (
                   <section
                     key={section.measure.code}
+                    id={getMeasureSectionId(section.measure.code)}
                     className="pt-2 first:pt-0"
                     aria-labelledby={`${section.measure.code.toLowerCase()}-section-title`}
                   >
                     {activeFolder.measures.length > 1 ? (
-                      <div className="mb-6 flex flex-col items-center justify-center border-y border-neutral-300 py-5">
+                      <div className="mb-3 flex flex-col items-center justify-center border-b border-neutral-400 py-2">
                         <h2
                           id={`${section.measure.code.toLowerCase()}-section-title`}
-                          className="text-sm font-bold uppercase tracking-[0.14em] text-neutral-950"
+                          className="text-lg font-bold tracking-wider uppercase text-neutral-950 leading-4"
                         >
                           {section.measure.label}
                         </h2>
-                        <p className="text-xs font-semibold text-neutral-500">
+                        <p className="text-xs font-semibold text-neutral-600 tracking-wide">
                           {section.measure.size}
                         </p>
                       </div>

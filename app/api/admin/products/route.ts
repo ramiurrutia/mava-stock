@@ -2,9 +2,11 @@ import path from "node:path";
 import {
   createCatalogProduct,
   deleteCatalogProduct,
+  getCatalogProductByCode,
   getCatalogProductStoragePath,
   getDynamicStoragePath,
   getNextCatalogProductCode,
+  updateCatalogProduct,
 } from "@/lib/catalogProducts";
 import { isAdminRequest } from "@/lib/adminAuth";
 import type {
@@ -140,6 +142,39 @@ async function deleteImageFromSupabaseStorage(storagePath: string) {
 
     throw new Error(
       details || "No se pudo borrar la imagen del storage de Supabase.",
+    );
+  }
+}
+
+async function moveImageInSupabaseStorage(
+  sourcePath: string,
+  destinationPath: string,
+) {
+  const config = getSupabaseStorageConfig();
+
+  if (!config) {
+    throw new Error(
+      "Falta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para mover la imagen en storage.",
+    );
+  }
+
+  const response = await fetch(`${config.url}/storage/v1/object/move`, {
+    body: JSON.stringify({
+      bucketId: storageBucket,
+      destinationKey: destinationPath,
+      sourceKey: sourcePath,
+    }),
+    headers: getStorageHeaders(config.serviceRoleKey, {
+      "Content-Type": "application/json",
+    }),
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+
+    throw new Error(
+      details || "No se pudo mover la imagen en el storage de Supabase.",
     );
   }
 }
@@ -503,6 +538,106 @@ export async function DELETE(request: Request) {
       {
         error:
           error instanceof Error ? error.message : "No se pudo borrar el item",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!isAdminRequest(request)) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const formData = await request.formData().catch(() => null);
+
+  if (!formData) {
+    return Response.json({ error: "Formulario invalido" }, { status: 400 });
+  }
+
+  const currentCode = readString(formData, "code").toUpperCase();
+  const measureCode = readMeasureCode(readString(formData, "measureCode"));
+  const priceOptions = readPriceOptions(formData);
+
+  if (!currentCode) {
+    return Response.json({ error: "Falta el codigo del item" }, { status: 400 });
+  }
+
+  if (!measureCode) {
+    return Response.json({ error: "Elegi una medida valida" }, { status: 400 });
+  }
+
+  if (!priceOptions) {
+    return Response.json(
+      { error: "Completa el precio de la lamina" },
+      { status: 400 },
+    );
+  }
+
+  let movedToPath = "";
+  let movedFromPath = "";
+
+  try {
+    const currentProduct = await getCatalogProductByCode(currentCode);
+
+    if (!currentProduct) {
+      return Response.json(
+        { error: "No se encontro el item dinamico para editar" },
+        { status: 404 },
+      );
+    }
+
+    const shouldMoveMeasure = currentProduct.measureCode !== measureCode;
+    const nextCode = shouldMoveMeasure
+      ? await getNextCatalogProductCode(measureCode)
+      : currentProduct.code;
+    const extension = path.extname(currentProduct.storagePath) || ".jpg";
+    const nextStoragePath = shouldMoveMeasure
+      ? getDynamicStoragePath(measureCode, `${nextCode}${extension}`)
+      : currentProduct.storagePath;
+
+    if (shouldMoveMeasure) {
+      movedFromPath = currentProduct.storagePath;
+      movedToPath = nextStoragePath;
+      await moveImageInSupabaseStorage(movedFromPath, movedToPath);
+    }
+
+    try {
+      const product = await updateCatalogProduct({
+        code: nextCode,
+        currentCode: currentProduct.code,
+        height: currentProduct.height,
+        measureCode,
+        priceOptions,
+        storagePath: nextStoragePath,
+        themeId: currentProduct.themeId,
+        width: currentProduct.width,
+      });
+
+      if (!product) {
+        throw new Error("No se pudo actualizar el item.");
+      }
+
+      return Response.json({
+        previousCode: currentProduct.code,
+        product,
+      });
+    } catch (error) {
+      if (movedFromPath && movedToPath) {
+        await moveImageInSupabaseStorage(movedToPath, movedFromPath).catch(
+          () => {},
+        );
+      }
+
+      throw error;
+    }
+  } catch (error) {
+    console.error(error);
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error ? error.message : "No se pudo editar el item",
       },
       { status: 500 },
     );

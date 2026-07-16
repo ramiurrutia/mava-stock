@@ -1,6 +1,6 @@
 import type { StaticImageData } from "next/image";
 import { productAssets, type ProductAsset } from "@/data/product-assets";
-import { getProductPairInfo, productPairGroups } from "@/data/product-pairs";
+import { getProductPairInfo } from "@/data/product-pairs";
 
 export type Product = {
   id: string;
@@ -20,6 +20,7 @@ export type Product = {
   pairRelatedCodes?: readonly string[];
   pairSize?: number;
   priceOptions?: readonly ProductPriceOption[];
+  sortOrder?: number;
 };
 
 export type ProductFolderId =
@@ -194,12 +195,12 @@ export const productFolders = [
   {
     id: "grandes",
     label: "Grandes",
-    description: "TEXTURADOS / XG / XGM",
+    description: "XGM / XG / TEXTURADOS",
     measures: [
       {
-        code: "TEXTURADO",
-        label: "TEXTURADOS",
-        size: "85 x 85",
+        code: "XGM",
+        label: "XGM",
+        size: "103 x 73",
       },
       {
         code: "XG",
@@ -207,9 +208,9 @@ export const productFolders = [
         size: "115 x 65",
       },
       {
-        code: "XGM",
-        label: "XGM",
-        size: "103 x 73",
+        code: "TEXTURADO",
+        label: "TEXTURADOS",
+        size: "85 x 85",
       },
     ],
   },
@@ -546,10 +547,6 @@ export const products: Product[] = productAssets.map(createProduct);
 
 export const categories = productThemes.map((theme) => theme.label);
 
-const productPairGroupById = Object.fromEntries(
-  productPairGroups.map((group) => [group.id, group]),
-) as Record<string, (typeof productPairGroups)[number] | undefined>;
-
 const productCodeCollator = new Intl.Collator("es", {
   numeric: true,
   sensitivity: "base",
@@ -563,42 +560,23 @@ export function orderProductsByCode(productList: Product[]) {
   return [...productList].sort(compareProductCodes);
 }
 
-export function orderProductsWithPairs(productList: Product[]) {
-  const sortedProducts = orderProductsByCode(productList);
-  const productsByCode = new Map(
-    sortedProducts.map((product) => [product.code, product]),
-  );
-  const includedGroupIds = new Set<string>();
-  const includedProductIds = new Set<string>();
-  const orderedProducts: Product[] = [];
+export function orderProductsByManualOrder(productList: Product[]) {
+  return [...productList].sort((a, b) => {
+    const aOrder = a.sortOrder;
+    const bOrder = b.sortOrder;
 
-  sortedProducts.forEach((product) => {
-    if (includedProductIds.has(product.id)) {
-      return;
+    if (typeof aOrder === "number" && typeof bOrder === "number") {
+      return aOrder - bOrder || compareProductCodes(a, b);
     }
 
-    const pairInfo = getProductPairInfo(product.code);
-    const pairGroup = pairInfo
-      ? productPairGroupById[pairInfo.groupId]
-      : undefined;
-
-    if (!pairInfo || !pairGroup || includedGroupIds.has(pairInfo.groupId)) {
-      orderedProducts.push(product);
-      includedProductIds.add(product.id);
-      return;
+    if (typeof aOrder === "number") {
+      return -1;
     }
 
-    includedGroupIds.add(pairInfo.groupId);
+    if (typeof bOrder === "number") {
+      return 1;
+    }
 
-    pairGroup.codes.forEach((code) => {
-      const pairedProduct = productsByCode.get(code);
-
-      if (pairedProduct && !includedProductIds.has(pairedProduct.id)) {
-        orderedProducts.push(pairedProduct);
-        includedProductIds.add(pairedProduct.id);
-      }
-    });
+    return compareProductCodes(a, b);
   });
-
-  return orderedProducts;
 }

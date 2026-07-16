@@ -121,6 +121,43 @@ export async function deleteAdminProduct(code: string) {
   };
 }
 
+export async function editAdminProduct(formData: FormData) {
+  const response = await fetch("/api/admin/products", {
+    body: formData,
+    headers: getAdminAuthHeaders(),
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await getApiErrorMessage(response, "No se pudo editar el item"),
+    );
+  }
+
+  return (await response.json()) as {
+    previousCode?: string;
+    product?: Product;
+  };
+}
+
+export async function saveAdminProductOrder(codes: string[]) {
+  const response = await fetch("/api/admin/product-order", {
+    body: JSON.stringify({ codes }),
+    headers: getAdminHeaders(),
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await getApiErrorMessage(response, "No se pudo guardar el orden"),
+    );
+  }
+
+  return (await response.json()) as {
+    codes?: string[];
+  };
+}
+
 export function applyLocalStock(
   productList: Product[],
   unavailableProductIds: string[],
