@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import { createSupabaseImage } from "@/data/supabase-storage";
+import burlapTexture from "@/app/sources/layers/txt_arpillera.png";
 import {
   getProductPreviewDimensions,
   type PriceOptionId,
@@ -13,47 +13,48 @@ type FramePreviewProps = {
   selectedPriceId?: PriceOptionId;
 };
 
-const burlapLayer = createSupabaseImage("layers/ARPILLERA.png", 839, 1170);
-const whiteLayer = createSupabaseImage("layers/BLANCO.png", 1805, 2540);
-
 export function FramePreview({
   onArtworkError,
   product,
   selectedPriceId,
 }: FramePreviewProps) {
-  const frameLayer = selectedPriceId === "arpillera" ? burlapLayer : whiteLayer;
+  const isBurlap = selectedPriceId === "arpillera";
   const { width, height } = getProductPreviewDimensions(product);
   const aspectRatio = width / height;
   const isPanoramicFrame = aspectRatio > 1.6;
-  const useWarmFrame = selectedPriceId !== "blanco";
-  const frameMargin = Math.min(width, height) * 0.095;
-  const verticalInset = (frameMargin / height) * 100;
-  const horizontalInset = (frameMargin / width) * 100;
+  const frameWidth = Math.min(width, height) * 0.045;
+  const artMargin = Math.min(width, height) * 0.115;
+  const frameVerticalInset = (frameWidth / height) * 100;
+  const frameHorizontalInset = (frameWidth / width) * 100;
+  const artVerticalInset = (artMargin / height) * 100;
+  const artHorizontalInset = (artMargin / width) * 100;
   const previewStyle: CSSProperties = {
     aspectRatio: `${width} / ${height}`,
   };
-  const panoramicFrameStyle: CSSProperties = {
-    backgroundColor: useWarmFrame ? "#b98555" : "#d8d2c7",
-    backgroundImage: useWarmFrame
-      ? "linear-gradient(90deg, rgba(255,255,255,.22), rgba(255,255,255,0) 18%, rgba(62,36,16,.24) 82%, rgba(255,255,255,.16)), linear-gradient(180deg, #d5ad7d, #a87546 48%, #d1a678)"
-      : `linear-gradient(90deg, rgba(255,255,255,.32), rgba(255,255,255,0) 18%, rgba(0,0,0,.12) 82%, rgba(255,255,255,.18)), url(${frameLayer.src})`,
+  const frameStyle: CSSProperties = {
+    backgroundColor: "#b98555",
+    backgroundImage:
+      "linear-gradient(90deg, rgba(255,255,255,.26), rgba(255,255,255,0) 18%, rgba(62,36,16,.24) 82%, rgba(255,255,255,.16)), linear-gradient(180deg, #d9b181, #a87546 50%, #d1a678)",
     backgroundPosition: "center",
-    backgroundSize: "100% 100%, 240px auto",
+    backgroundSize: "100% 100%",
     boxShadow:
       "inset 0 0 0 1px rgba(70,45,22,.28), inset 0 8px 16px rgba(255,255,255,.2), inset 0 -10px 18px rgba(55,32,12,.28)",
   };
-  const panoramicMatStyle: CSSProperties = {
-    inset: `${verticalInset * 0.5}% ${horizontalInset * 0.55}%`,
-    backgroundColor: useWarmFrame ? "#d9c6a6" : "#eeeae1",
-    boxShadow:
-      "inset 0 0 0 1px rgba(80,70,55,.12), inset 0 7px 16px rgba(255,255,255,.42), inset 0 -7px 16px rgba(55,43,31,.14)",
+  const matStyle: CSSProperties = {
+    inset: `${frameVerticalInset}% ${frameHorizontalInset}%`,
+    backgroundColor: isBurlap ? "#b69058" : "#eeeae1",
+    backgroundImage: isBurlap
+      ? `url(${burlapTexture.src})`
+      : "linear-gradient(rgba(255,255,255,.45), rgba(60,52,43,.05))",
+    backgroundPosition: "center",
+    backgroundSize: isBurlap ? "180px 180px" : "100% 100%",
+    boxShadow: isBurlap
+      ? "inset 0 0 0 1px rgba(80,60,35,.18)"
+      : "inset 0 0 0 1px rgba(80,70,55,.12), inset 0 7px 16px rgba(255,255,255,.42), inset 0 -7px 16px rgba(55,43,31,.14)",
   };
   const artAreaStyle: CSSProperties = {
-    inset: `${verticalInset}% ${horizontalInset}%`,
+    inset: `${artVerticalInset}% ${artHorizontalInset}%`,
   };
-  const imageSizes = isPanoramicFrame
-    ? "(min-width: 1280px) 440px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 92vw"
-    : "(min-width: 1280px) 280px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
   const artSizes = isPanoramicFrame
     ? "(min-width: 1280px) 400px, (min-width: 1024px) 36vw, (min-width: 640px) 54vw, 84vw"
     : "(min-width: 1280px) 220px, (min-width: 1024px) 25vw, (min-width: 640px) 38vw, 76vw";
@@ -65,24 +66,8 @@ export function FramePreview({
       aria-label={`Vista previa de ${product.code}`}
       role="img"
     >
-      {isPanoramicFrame ? (
-        <>
-          <div className="absolute inset-0 z-0" style={panoramicFrameStyle} />
-          <div className="absolute z-0" style={panoramicMatStyle} />
-        </>
-      ) : (
-        <div className="absolute inset-0 z-0">
-          <Image
-            src={frameLayer}
-            alt=""
-            fill
-            sizes={imageSizes}
-            className="h-full w-full object-fill"
-            aria-hidden="true"
-            priority
-          />
-        </div>
-      )}
+      <div className="absolute inset-0 z-0" style={frameStyle} />
+      <div className="absolute z-0" style={matStyle} />
       <div
         className={`frame-art absolute z-10 overflow-hidden ${
           isPanoramicFrame

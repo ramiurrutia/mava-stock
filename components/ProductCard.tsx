@@ -1,7 +1,9 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import {
+  getProductPreviewDimensions,
   getProductPriceOptions,
   isProductLandscape,
   type PriceOptionId,
@@ -27,6 +29,16 @@ export function ProductCard({
   const [failedArtworkSrc, setFailedArtworkSrc] = useState("");
   const isUnavailable = !product.available;
   const isLandscape = isProductLandscape(product);
+  const previewDimensions = getProductPreviewDimensions(product);
+  const previewLongSide = Math.max(
+    previewDimensions.width,
+    previewDimensions.height,
+  );
+  const previewScale = 340 / previewLongSide;
+  const previewWidth = previewDimensions.width * previewScale;
+  const previewStyle: CSSProperties = {
+    maxWidth: `${previewWidth}px`,
+  };
   const priceOptions = getProductPriceOptions(product);
   const artworkFailed = failedArtworkSrc === product.image.src;
   let priceGridClass = "grid-cols-2";
@@ -69,7 +81,7 @@ export function ProductCard({
             isLandscape ? "p-2 sm:px-6 sm:py-3" : "p-1.5"
           }`}
         >
-          <div className={isLandscape ? "mx-auto w-full max-w-[86%]" : ""}>
+          <div className="mx-auto w-full" style={previewStyle}>
             <FramePreview
               product={product}
               selectedPriceId={selectedPriceId}

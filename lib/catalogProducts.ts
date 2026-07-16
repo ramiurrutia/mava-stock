@@ -55,7 +55,7 @@ const measureSizes: Record<ProductMeasureCode, string> = {
   TC: "TC 42 x 52",
   TEXTURADO: "TEXTURADOS 85 x 85",
   XG: "XG 115 x 65",
-  XGM: "XGM 103 x 63",
+  XGM: "XGM 103 x 73",
 };
 const fallbackImageDimensions: Record<
   ProductMeasureCode,
@@ -67,7 +67,7 @@ const fallbackImageDimensions: Record<
   TC: { width: 420, height: 520 },
   TEXTURADO: { width: 850, height: 850 },
   XG: { width: 1150, height: 650 },
-  XGM: { width: 1030, height: 630 },
+  XGM: { width: 1030, height: 730 },
 };
 const measureFolderIds: Record<ProductMeasureCode, Product["folderId"]> = {
   DNG: "medianos",

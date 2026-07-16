@@ -204,12 +204,12 @@ export const productFolders = [
       {
         code: "XG",
         label: "XG",
-        size: "115 x 75",
+        size: "115 x 65",
       },
       {
         code: "XGM",
         label: "XGM",
-        size: "103 x 63",
+        size: "103 x 73",
       },
     ],
   },
@@ -454,7 +454,7 @@ const measureSizeByCode: Record<ProductMeasureCode, string> = {
   SG: "124 x 184",
   DNG: "64 x 84",
   TC: "42 x 52",
-  XGM: "103 x 63",
+  XGM: "103 x 73",
   TEXTURADO: "85 x 85",
 };
 
@@ -462,12 +462,12 @@ const measureDimensionsByCode: Record<
   ProductMeasureCode,
   { width: number; height: number }
 > = {
-  XG: { width: 115, height: 75 },
+  XG: { width: 115, height: 65 },
   SGF: { width: 185, height: 85 },
   SG: { width: 124, height: 184 },
   DNG: { width: 64, height: 84 },
   TC: { width: 42, height: 52 },
-  XGM: { width: 103, height: 63 },
+  XGM: { width: 103, height: 73 },
   TEXTURADO: { width: 85, height: 85 },
 };
 

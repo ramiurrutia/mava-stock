@@ -113,17 +113,33 @@ export default function Home() {
   );
   const normalizedSearch = search.trim().toLowerCase();
 
-  const filteredProducts = activeFolder
-    ? orderProductsWithPairs(catalogVisibleProducts.filter((product) => {
-        const matchesFolder = product.folderId === activeFolder.id;
-        const matchesSearch =
-          normalizedSearch.length === 0 ||
-          product.name.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch);
+  const filteredProductSections = activeFolder
+    ? activeFolder.measures
+        .map((measure) => {
+          const measureProducts = orderProductsWithPairs(
+            catalogVisibleProducts.filter((product) => {
+              const matchesFolder = product.folderId === activeFolder.id;
+              const matchesMeasure = product.measureCode === measure.code;
+              const matchesSearch =
+                normalizedSearch.length === 0 ||
+                product.name.toLowerCase().includes(normalizedSearch) ||
+                product.category.toLowerCase().includes(normalizedSearch);
 
-        return matchesFolder && matchesSearch;
-      }))
+              return matchesFolder && matchesMeasure && matchesSearch;
+            }),
+          );
+
+          return {
+            measure,
+            products: measureProducts,
+          };
+        })
+        .filter((section) => section.products.length > 0)
     : [];
+  const filteredProductCount = filteredProductSections.reduce(
+    (total, section) => total + section.products.length,
+    0,
+  );
 
   useEffect(() => {
     function syncFolderFromUrl() {
@@ -375,14 +391,37 @@ export default function Home() {
               </button>
             </div>
 
-            {filteredProducts.length > 0 ? (
-              <ProductGrid
-                products={filteredProducts}
-                selectedIds={visibleSelectedIds}
-                selectedPriceIds={visibleSelectedPriceIds}
-                onToggle={toggleProduct}
-                onPriceToggle={toggleProductPrice}
-              />
+            {filteredProductCount > 0 ? (
+              <div className="grid gap-8 pb-24">
+                {filteredProductSections.map((section) => (
+                  <section
+                    key={section.measure.code}
+                    className="pt-2 first:pt-0"
+                    aria-labelledby={`${section.measure.code.toLowerCase()}-section-title`}
+                  >
+                    {activeFolder.measures.length > 1 ? (
+                      <div className="mb-6 flex flex-col items-center justify-center border-y border-neutral-300 py-5">
+                        <h2
+                          id={`${section.measure.code.toLowerCase()}-section-title`}
+                          className="text-sm font-bold uppercase tracking-[0.14em] text-neutral-950"
+                        >
+                          {section.measure.label}
+                        </h2>
+                        <p className="text-xs font-semibold text-neutral-500">
+                          {section.measure.size}
+                        </p>
+                      </div>
+                    ) : null}
+                    <ProductGrid
+                      products={section.products}
+                      selectedIds={visibleSelectedIds}
+                      selectedPriceIds={visibleSelectedPriceIds}
+                      onToggle={toggleProduct}
+                      onPriceToggle={toggleProductPrice}
+                    />
+                  </section>
+                ))}
+              </div>
             ) : (
               <section className="border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
                 <h2 className="text-lg font-semibold">
