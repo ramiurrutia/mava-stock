@@ -5,7 +5,7 @@ import { products as staticProducts, type Product } from "@/data/products";
 
 const catalogProductsChangeEvent = "mava-catalog-products-change";
 let cachedDynamicProducts: Product[] | null = null;
-let pendingDynamicProductsRequest: Promise<Product[]> | null = null;
+let pendingDynamicProductsRequest: Promise<Product[] | null> | null = null;
 
 type ProductsResponse = {
   products?: Product[];
@@ -33,6 +33,10 @@ export function notifyCatalogProductsChanged() {
 }
 
 async function fetchDynamicProducts(forceRefresh = false) {
+  if (!forceRefresh && cachedDynamicProducts) {
+    return cachedDynamicProducts;
+  }
+
   if (!forceRefresh && pendingDynamicProductsRequest) {
     return pendingDynamicProductsRequest;
   }
@@ -43,17 +47,20 @@ async function fetchDynamicProducts(forceRefresh = false) {
   const request = fetch(url, { cache: "no-store" })
     .then(async (response) => {
       if (!response.ok) {
-        return cachedDynamicProducts ?? [];
+        return cachedDynamicProducts;
       }
 
       const data = (await response.json().catch(() => null)) as
         | ProductsResponse
         | null;
 
-      return Array.isArray(data?.products) ? data.products : [];
+      return Array.isArray(data?.products) ? data.products : null;
     })
     .then((products) => {
-      cachedDynamicProducts = products;
+      if (products) {
+        cachedDynamicProducts = products;
+      }
+
       return products;
     })
     .finally(() => {
@@ -78,7 +85,7 @@ export function useCatalogProducts(initialProducts: Product[] = staticProducts) 
     async function loadProducts(forceRefresh = false) {
       const products = await fetchDynamicProducts(forceRefresh);
 
-      if (!ignore) {
+      if (!ignore && products) {
         setDynamicProducts(products);
       }
     }
@@ -100,9 +107,10 @@ export function useCatalogProducts(initialProducts: Product[] = staticProducts) 
     const localDynamicProducts = initialProducts.filter(
       (product) => product.dynamic,
     );
+    const baseProducts = dynamicProducts ? [] : staticProducts;
     const bucketProducts = dynamicProducts ?? [];
 
-    return mergeCatalogProducts(staticProducts, [
+    return mergeCatalogProducts(baseProducts, [
       ...bucketProducts,
       ...localDynamicProducts,
     ]);
