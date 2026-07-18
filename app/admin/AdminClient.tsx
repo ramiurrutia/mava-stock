@@ -49,6 +49,7 @@ import {
   type Product,
   type ProductMeasureCode,
 } from "@/data/products";
+import { BsArrowsMove } from "react-icons/bs";
 
 const allStockStates = "todos";
 const allFolders = "todas";
@@ -1618,7 +1619,7 @@ type AdminProductCardProps = {
   onAvailabilityChange: (available: boolean) => Promise<unknown>;
   onDelete?: () => Promise<unknown>;
   onEdit?: () => void;
-  dragHandleProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+  dragCardProps?: React.HTMLAttributes<HTMLElement>;
 };
 
 function SortableAdminProductCard(props: AdminProductCardProps) {
@@ -1643,7 +1644,7 @@ function SortableAdminProductCard(props: AdminProductCardProps) {
       <AdminProductCard
         {...props}
         dragging={isDragging}
-        dragHandleProps={{
+        dragCardProps={{
           ...attributes,
           ...listeners,
         }}
@@ -1660,7 +1661,7 @@ function AdminProductCard({
   onAvailabilityChange,
   onDelete,
   onEdit,
-  dragHandleProps,
+  dragCardProps,
 }: AdminProductCardProps) {
   const pairKind = product.pairSize && product.pairSize > 2 ? "Serie" : "Pareja";
   const pairText = product.pairRelatedCodes?.length
@@ -1669,11 +1670,16 @@ function AdminProductCard({
 
   return (
     <article
-      className={`border bg-white p-3 shadow-sm transition ${
+      {...dragCardProps}
+      className={`relative border bg-white p-3 shadow-sm transition ${
         product.available
           ? "border-neutral-200"
           : "border-neutral-300 opacity-60 grayscale"
-      } ${dragHandleProps ? "select-none" : ""} ${
+      } ${
+        dragCardProps
+          ? "group/order cursor-grab select-none touch-none overflow-hidden hover:border-[#7E5E35] hover:shadow-md active:cursor-grabbing"
+          : ""
+      } ${
         dragging ? "scale-[0.98] border-[#7E5E35] opacity-55" : ""
       }`}
     >
@@ -1704,14 +1710,10 @@ function AdminProductCard({
                 </span>
               ) : null}
             </h2>
-            {dragHandleProps ? (
-              <button
-                type="button"
-                {...dragHandleProps}
-                className="shrink-0 cursor-grab touch-none border border-neutral-300 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-neutral-600 transition hover:border-[#7E5E35] hover:text-[#7E5E35] active:cursor-grabbing"
-              >
+            {dragCardProps ? (
+              <span className="shrink-0 border border-neutral-300 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-neutral-600">
                 Mover
-              </button>
+              </span>
             ) : null}
           </div>
           {pairText ? (
@@ -1769,6 +1771,22 @@ function AdminProductCard({
           </div>
         ) : null}
       </div>
+
+      {dragCardProps ? (
+        <div
+          className={`pointer-events-none absolute inset-0 z-40 grid place-items-center bg-neutral-950/55 transition ${
+            dragging ? "opacity-100" : "opacity-0 group-hover/order:opacity-100"
+          }`}
+          aria-hidden="true"
+        >
+          <div className="grid place-items-center border border-white/40 bg-neutral-950/70 px-4 py-3 text-white shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+            <BsArrowsMove></BsArrowsMove>
+            <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">
+              Mover
+            </span>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
