@@ -661,24 +661,26 @@ export async function deleteCatalogProduct(
 export async function getNextCatalogProductCode(
   measureCode: ProductMeasureCode,
 ) {
-  const dynamicProducts = await getCatalogProducts().catch(() => []);
   const prefix = measureCode;
   const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const highestNumber = [...staticProducts, ...dynamicProducts].reduce(
-    (highest, product) => {
-      if (product.measureCode !== measureCode) {
-        return highest;
-      }
+  const codePattern = new RegExp(`^${escapedPrefix}-(\\d{3})$`, "i");
+  const [catalogRows, storageEntries] = await Promise.all([
+    getCatalogProductRows().catch(() => []),
+    getStorageImageEntries().catch(() => []),
+  ]);
+  const codeCandidates = [
+    ...staticProducts.map((product) => product.code),
+    ...catalogRows.map((row) => readString(row.code)),
+    ...storageEntries
+      .filter((entry) => entry.measureCode === measureCode)
+      .map((entry) => getFileStem(entry.fileName)),
+  ];
+  const highestNumber = codeCandidates.reduce((highest, code) => {
+    const match = code.match(codePattern);
+    const codeNumber = match ? Number(match[1]) : 0;
 
-      const match = product.code.match(
-        new RegExp(`^${escapedPrefix}-(\\d{3})$`, "i"),
-      );
-      const codeNumber = match ? Number(match[1]) : 0;
-
-      return codeNumber > highest ? codeNumber : highest;
-    },
-    0,
-  );
+    return codeNumber > highest ? codeNumber : highest;
+  }, 0);
 
   return `${prefix}-${String(highestNumber + 1).padStart(3, "0")}`;
 }
