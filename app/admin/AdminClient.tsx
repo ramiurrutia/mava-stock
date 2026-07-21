@@ -260,8 +260,16 @@ export function AdminClient() {
     }),
   );
   const visibleAdminProducts = orderMode ? orderingProducts : filteredProducts;
-  const sortableProductCodes = visibleAdminProducts.map(
-    (product) => product.code,
+  const visibleAdminProductSections = productFolders.flatMap((folderOption) =>
+    folderOption.measures
+      .map((measure) => ({
+        folderLabel: folderOption.label,
+        measure,
+        products: visibleAdminProducts.filter(
+          (product) => product.measureCode === measure.code,
+        ),
+      }))
+      .filter((section) => section.products.length > 0),
   );
   const dragSensors = useSensors(
     useSensor(PointerSensor, {
@@ -487,6 +495,19 @@ export function AdminClient() {
     }
 
     setOrderingProducts((current) => {
+      const activeProduct = current.find(
+        (product) => product.code === activeCode,
+      );
+      const overProduct = current.find((product) => product.code === overCode);
+
+      if (
+        !activeProduct ||
+        !overProduct ||
+        activeProduct.measureCode !== overProduct.measureCode
+      ) {
+        return current;
+      }
+
       const oldIndex = current.findIndex(
         (product) => product.code === activeCode,
       );
@@ -838,59 +859,95 @@ export function AdminClient() {
                     collisionDetection={closestCenter}
                     onDragEnd={handleProductDragEnd}
                   >
-                    <SortableContext
-                      items={sortableProductCodes}
-                      strategy={rectSortingStrategy}
-                    >
-                      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {visibleAdminProducts.map((product) => (
-                          <SortableAdminProductCard
-                            key={product.id}
-                            product={product}
-                            deleting={deletingProductCode === product.code}
-                            recentlyAdded={
-                              product.code === recentlyAddedProductCode
-                            }
-                            onAvailabilityChange={(available) =>
-                              runStockAction(() =>
-                                setProductAvailability(product.id, available),
-                              )
-                            }
-                            onDelete={() => handleDeleteProduct(product)}
-                            onEdit={
-                              product.dynamic
-                                ? () => setEditingProduct(product)
-                                : undefined
-                            }
+                    <div className="grid gap-8">
+                      {visibleAdminProductSections.map((section) => (
+                        <section key={section.measure.code}>
+                          <AdminMeasureHeader
+                            count={section.products.length}
+                            folderLabel={section.folderLabel}
+                            label={section.measure.label}
+                            size={section.measure.size}
                           />
-                        ))}
-                      </section>
-                    </SortableContext>
+                          <SortableContext
+                            items={section.products.map(
+                              (product) => product.code,
+                            )}
+                            strategy={rectSortingStrategy}
+                          >
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                              {section.products.map((product) => (
+                                <SortableAdminProductCard
+                                  key={product.id}
+                                  product={product}
+                                  deleting={
+                                    deletingProductCode === product.code
+                                  }
+                                  recentlyAdded={
+                                    product.code === recentlyAddedProductCode
+                                  }
+                                  onAvailabilityChange={(available) =>
+                                    runStockAction(() =>
+                                      setProductAvailability(
+                                        product.id,
+                                        available,
+                                      ),
+                                    )
+                                  }
+                                  onDelete={() =>
+                                    handleDeleteProduct(product)
+                                  }
+                                  onEdit={
+                                    product.dynamic
+                                      ? () => setEditingProduct(product)
+                                      : undefined
+                                  }
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </section>
+                      ))}
+                    </div>
                   </DndContext>
                 ) : (
-                  <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {visibleAdminProducts.map((product) => (
-                      <AdminProductCard
-                        key={product.id}
-                        product={product}
-                        deleting={deletingProductCode === product.code}
-                        recentlyAdded={
-                          product.code === recentlyAddedProductCode
-                        }
-                        onAvailabilityChange={(available) =>
-                          runStockAction(() =>
-                            setProductAvailability(product.id, available),
-                          )
-                        }
-                        onDelete={() => handleDeleteProduct(product)}
-                        onEdit={
-                          product.dynamic
-                            ? () => setEditingProduct(product)
-                            : undefined
-                        }
-                      />
+                  <div className="grid gap-8">
+                    {visibleAdminProductSections.map((section) => (
+                      <section key={section.measure.code}>
+                        <AdminMeasureHeader
+                          count={section.products.length}
+                          folderLabel={section.folderLabel}
+                          label={section.measure.label}
+                          size={section.measure.size}
+                        />
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                          {section.products.map((product) => (
+                            <AdminProductCard
+                              key={product.id}
+                              product={product}
+                              deleting={deletingProductCode === product.code}
+                              recentlyAdded={
+                                product.code === recentlyAddedProductCode
+                              }
+                              onAvailabilityChange={(available) =>
+                                runStockAction(() =>
+                                  setProductAvailability(
+                                    product.id,
+                                    available,
+                                  ),
+                                )
+                              }
+                              onDelete={() => handleDeleteProduct(product)}
+                              onEdit={
+                                product.dynamic
+                                  ? () => setEditingProduct(product)
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </div>
+                      </section>
                     ))}
-                  </section>
+                  </div>
                 )}
 
                 {visibleAdminProducts.length === 0 ? (
@@ -1384,6 +1441,37 @@ function AdminLoadingState() {
       />
       <p className="text-sm font-semibold text-neutral-500">
         Verificando acceso...
+      </p>
+    </div>
+  );
+}
+
+type AdminMeasureHeaderProps = {
+  count: number;
+  folderLabel: string;
+  label: string;
+  size: string;
+};
+
+function AdminMeasureHeader({
+  count,
+  folderLabel,
+  label,
+  size,
+}: AdminMeasureHeaderProps) {
+  return (
+    <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-end border-b border-neutral-400 py-2">
+      <p className="hidden text-xs font-semibold uppercase text-neutral-400 sm:block">
+        {folderLabel}
+      </p>
+      <div className="text-center">
+        <h2 className="text-lg font-bold uppercase leading-4 text-neutral-950">
+          {label}
+        </h2>
+        <p className="mt-1 text-xs font-semibold text-neutral-600">{size}</p>
+      </div>
+      <p className="justify-self-end text-xs font-semibold text-neutral-500">
+        {count} {count === 1 ? "cuadro" : "cuadros"}
       </p>
     </div>
   );
