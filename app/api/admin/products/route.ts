@@ -2,6 +2,7 @@ import path from "node:path";
 import {
   createCatalogProduct,
   deleteCatalogProduct,
+  deleteCatalogProductOrder,
   getCatalogProductByCode,
   getCatalogProductStoragePath,
   getDynamicStoragePath,
@@ -514,21 +515,13 @@ export async function DELETE(request: Request) {
       });
     }
 
-    const deleted = await deleteCatalogProduct(code);
-
-    if (!deleted) {
-      return Response.json({
-        product: {
-          code,
-        },
-      });
-    }
-
     await deleteImageFromSupabaseStorage(storagePath);
+    const deleted = await deleteCatalogProduct(code);
+    await deleteCatalogProductOrder(code).catch(() => {});
 
     return Response.json({
       product: {
-        code: deleted.code,
+        code: deleted?.code ?? code,
       },
     });
   } catch (error) {

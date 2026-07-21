@@ -856,11 +856,7 @@ export function AdminClient() {
                                 setProductAvailability(product.id, available),
                               )
                             }
-                            onDelete={
-                              product.dynamic
-                                ? () => handleDeleteProduct(product)
-                                : undefined
-                            }
+                            onDelete={() => handleDeleteProduct(product)}
                             onEdit={
                               product.dynamic
                                 ? () => setEditingProduct(product)
@@ -886,11 +882,7 @@ export function AdminClient() {
                             setProductAvailability(product.id, available),
                           )
                         }
-                        onDelete={
-                          product.dynamic
-                            ? () => handleDeleteProduct(product)
-                            : undefined
-                        }
+                        onDelete={() => handleDeleteProduct(product)}
                         onEdit={
                           product.dynamic
                             ? () => setEditingProduct(product)
@@ -1748,7 +1740,7 @@ function AdminProductCard({
           </button>
         </div>
         {onDelete ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className={onEdit ? "grid grid-cols-2 gap-2" : ""}>
             {onEdit ? (
               <button
                 type="button"
@@ -1764,7 +1756,9 @@ function AdminProductCard({
                 void onDelete();
               }}
               disabled={deleting}
-              className="h-8 border border-red-800 bg-red-800/20 px-2 text-xs font-semibold text-red-800 transition hover:border-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400"
+              className={`h-8 border border-red-800 bg-red-800/20 px-2 text-xs font-semibold text-red-800 transition hover:border-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 ${
+                onEdit ? "" : "w-full"
+              }`}
             >
               {deleting ? "Borrando..." : "Borrar"}
             </button>

@@ -536,7 +536,17 @@ export async function getCatalogProductStoragePath(code: string) {
   const row = rows[0];
   const storagePath = readString(row?.storage_path);
 
-  return storagePath || null;
+  if (storagePath) {
+    return storagePath;
+  }
+
+  const normalizedCode = code.trim().toUpperCase();
+  const storageEntries = await getStorageImageEntries();
+  const matchingEntry = storageEntries.find(
+    (entry) => getFileStem(entry.fileName).toUpperCase() === normalizedCode,
+  );
+
+  return matchingEntry?.storagePath ?? null;
 }
 
 export async function getCatalogProductByCode(code: string) {
@@ -656,6 +666,18 @@ export async function deleteCatalogProduct(
     code: productCode,
     storagePath,
   };
+}
+
+export async function deleteCatalogProductOrder(code: string) {
+  await fetchCatalogProducts(
+    `${catalogProductOrderTable}?code=ilike.${encodeURIComponent(code)}`,
+    {
+      headers: {
+        Prefer: "return=minimal",
+      },
+      method: "DELETE",
+    },
+  );
 }
 
 export async function getNextCatalogProductCode(
