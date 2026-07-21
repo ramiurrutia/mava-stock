@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { BsStarFill } from "react-icons/bs";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
 import {
@@ -447,9 +446,8 @@ export default function Home() {
                   >
                     {folderHighlighted ? (
                       <div className="mb-2 text-center">
-                        <span className="inline-flex items-center gap-1.5 bg-[#7E5E35] px-2 py-1 text-[10px] font-semibold uppercase text-white">
-                          <BsStarFill />
-                          Lo mas vendido
+                        <span className="inline-flex bg-[#7E5E35] px-2.5 py-1 text-[10px] font-semibold uppercase text-white">
+                          Nuestros cuadros más vendidos
                         </span>
                       </div>
                     ) : null}
@@ -478,26 +476,27 @@ export default function Home() {
                             onClick={() =>
                               selectMeasure(item.id, measure.code)
                             }
-                            className={`group/measure inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                            className={`group/measure inline-flex border px-2.5 py-1.5 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                               measureHighlighted
-                                ? "border-[#9A6D32] bg-[#7E5E35]/10 text-[#5F4627] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_6px_18px_rgba(126,94,53,0.14)]"
-                                : "border-neutral-300 bg-white text-neutral-800 hover:border-[#7E5E35] group-hover:border-[#7E5E35]/50"
+                                ? "flex-col items-center gap-1 border-[#9A6D32] bg-[#7E5E35]/10 text-[#5F4627] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_6px_18px_rgba(126,94,53,0.14)]"
+                                : "items-center gap-1.5 border-neutral-300 bg-white text-neutral-800 hover:border-[#7E5E35] group-hover:border-[#7E5E35]/50"
                             }`}
                           >
                             {measureHighlighted ? (
-                              <BsStarFill
-                                className="shrink-0 text-[#7E5E35]"
-                                title="Lo mas vendido"
-                              />
+                              <span className="text-center text-[9px] font-bold uppercase leading-tight text-[#7E5E35]">
+                                Nuestros cuadros más vendidos
+                              </span>
                             ) : null}
-                            <span className="text-neutral-950 transition group-hover/measure:text-current">
-                              {measure.label}
-                            </span>{" "}
-                            <span className="font-medium text-neutral-500 transition group-hover/measure:text-current">
-                              {measure.size}
-                            </span>
-                            <span aria-hidden="true" className="text-xs">
-                              →
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="text-neutral-950 transition group-hover/measure:text-current">
+                                {measure.label}
+                              </span>{" "}
+                              <span className="font-medium text-neutral-500 transition group-hover/measure:text-current">
+                                {measure.size}
+                              </span>
+                              <span aria-hidden="true" className="text-xs">
+                                →
+                              </span>
                             </span>
                           </button>
                         );
@@ -552,8 +551,7 @@ export default function Home() {
                         </p>
                         {highlightedMeasureCodes.has(section.measure.code) ? (
                           <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-[#5F4627]">
-                            <BsStarFill />
-                            Lo mas vendido
+                            Nuestros cuadros más vendidos
                           </span>
                         ) : null}
                       </div>
