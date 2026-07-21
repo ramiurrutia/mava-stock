@@ -440,14 +440,14 @@ export default function Home() {
                     key={item.id}
                     className={`group min-h-29 border bg-white p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                       folderHighlighted
-                        ? "border-[#9A6D32] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_10px_28px_rgba(126,94,53,0.16)]"
+                        ? "border-[#9A6D32] border-2 shadow-[0_0_0_4px_rgba(194,139,50,0.34),0_16px_40px_rgba(126,94,53,0.34)]"
                         : "border-neutral-300 shadow-sm hover:border-neutral-950"
                     }`}
                   >
                     {folderHighlighted ? (
                       <div className="mb-2 text-center">
                         <span className="inline-flex bg-[#7E5E35] px-2.5 py-1 text-[10px] font-semibold uppercase text-white">
-                          Nuestros cuadros más vendidos
+                          Nuestro tamaño más vendido
                         </span>
                       </div>
                     ) : null}
@@ -478,13 +478,13 @@ export default function Home() {
                             }
                             className={`group/measure inline-flex border px-2.5 py-1.5 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                               measureHighlighted
-                                ? "flex-col items-center gap-1 border-[#9A6D32] bg-[#7E5E35]/10 text-[#5F4627] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_6px_18px_rgba(126,94,53,0.14)]"
+                                ? "flex-col items-center border-[#9A6D32]/70 border-3 bg-[#7E5E35]/10 text-[#5F4627] shadow-[0_0_0_4px_rgba(194,139,50,0.36),0_12px_30px_rgba(126,94,53,0.34)]"
                                 : "items-center gap-1.5 border-neutral-300 bg-white text-neutral-800 hover:border-[#7E5E35] group-hover:border-[#7E5E35]/50"
                             }`}
                           >
                             {measureHighlighted ? (
                               <span className="text-center text-[9px] font-bold uppercase leading-tight text-[#7E5E35]">
-                                Nuestros cuadros más vendidos
+                                Nuestro tamaño más vendido
                               </span>
                             ) : null}
                             <span className="inline-flex items-center gap-1.5">
@@ -551,7 +551,7 @@ export default function Home() {
                         </p>
                         {highlightedMeasureCodes.has(section.measure.code) ? (
                           <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-[#5F4627]">
-                            Nuestros cuadros más vendidos
+                            Nuestro tamaño más vendido
                           </span>
                         ) : null}
                       </div>
