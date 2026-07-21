@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useState } from "react";
+import { BsCheckLg, BsStarFill } from "react-icons/bs";
 import {
   getProductPreviewDimensions,
   getProductPriceOptions,
@@ -12,6 +13,7 @@ import {
 import { FramePreview } from "@/components/FramePreview";
 
 type ProductCardProps = {
+  bestSeller: boolean;
   product: Product;
   selected: boolean;
   selectedPriceId?: PriceOptionId;
@@ -20,6 +22,7 @@ type ProductCardProps = {
 };
 
 export function ProductCard({
+  bestSeller,
   product,
   selected,
   selectedPriceId,
@@ -57,18 +60,32 @@ export function ProductCard({
 
   return (
     <article
-      className={`group flex h-full flex-col overflow-hidden border transition ${
+      className={`group relative flex h-full flex-col overflow-hidden border transition ${
         isLandscape ? "col-span-2" : ""
       } ${
         selected
-          ? "border-[#7E5E35] bg-[#7E5E35]/10 shadow-sm"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
+          ? "border-[#7E5E35] shadow-sm"
+          : bestSeller
+            ? "border-[#D0AE72] bg-[#fffaf0] shadow-[0_10px_26px_rgba(154,109,50,0.2)] hover:border-[#B98735]"
+            : "border-neutral-200 shadow-none hover:border-neutral-400"
+      } ${
+        selected
+          ? "bg-[#7E5E35]/10"
+          : bestSeller
+            ? "bg-[#fffaf0]"
+            : "bg-white"
       } ${
         isUnavailable
           ? "cursor-not-allowed opacity-45 grayscale"
           : "cursor-pointer"
       }`}
     >
+      {bestSeller ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 z-40 h-1 bg-[#C28B32]"
+        />
+      ) : null}
       <button
         type="button"
         disabled={isUnavailable}
@@ -100,8 +117,19 @@ export function ProductCard({
           ) : null}
 
           {selected ? (
-            <span className="absolute left-2.5 top-2.5 z-30 bg-[#7E5E35] px-2 py-1 text-[10px] font-semibold uppercase text-white">
-              Seleccionado
+            <span
+              title="Seleccionado"
+              aria-label="Seleccionado"
+              className="absolute left-2.5 top-2.5 z-30 grid h-8 w-8 place-items-center rounded-full bg-white text-[#7E5E35] shadow-md"
+            >
+              <BsCheckLg aria-hidden="true" className="h-5 w-5" />
+            </span>
+          ) : null}
+
+          {bestSeller ? (
+            <span className="absolute bottom-2.5 right-2.5 z-30 inline-flex items-center gap-1.5 bg-[#9A6D32] px-2 py-1 text-[10px] font-semibold uppercase text-white shadow-md">
+              <BsStarFill aria-hidden="true" />
+              Lo mas vendido
             </span>
           ) : null}
 

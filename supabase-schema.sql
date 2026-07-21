@@ -85,3 +85,26 @@ create index if not exists catalog_product_order_sort_order_idx
   on public.catalog_product_order (sort_order asc);
 
 alter table public.catalog_product_order enable row level security;
+
+create table if not exists public.catalog_highlights (
+  target_type text not null,
+  target_id text not null,
+  updated_at timestamptz not null default now(),
+  primary key (target_type, target_id),
+  constraint catalog_highlights_target_type_check check (
+    target_type in ('folder', 'measure', 'product')
+  )
+);
+
+create index if not exists catalog_highlights_updated_at_idx
+  on public.catalog_highlights (updated_at desc);
+
+alter table public.catalog_highlights enable row level security;
+
+alter table public.catalog_highlights
+  drop constraint if exists catalog_highlights_target_type_check;
+
+alter table public.catalog_highlights
+  add constraint catalog_highlights_target_type_check check (
+    target_type in ('folder', 'measure', 'product')
+  );

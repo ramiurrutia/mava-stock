@@ -5,6 +5,7 @@ import type { PriceOptionId, Product, SelectedPriceIds } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 
 type ProductGridProps = {
+  bestSellerCodes: ReadonlySet<string>;
   products: Product[];
   selectedIds: string[];
   selectedPriceIds: SelectedPriceIds;
@@ -13,6 +14,7 @@ type ProductGridProps = {
 };
 
 export function ProductGrid({
+  bestSellerCodes,
   products,
   selectedIds,
   selectedPriceIds,
@@ -39,6 +41,7 @@ export function ProductGrid({
       {products.map((product) => (
         <ProductCard
           key={product.id}
+          bestSeller={bestSellerCodes.has(product.code)}
           product={product}
           selected={selectedSet.has(product.id)}
           selectedPriceId={selectedPriceIds[product.id]}

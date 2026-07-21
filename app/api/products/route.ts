@@ -2,6 +2,10 @@ import {
   CatalogProductsUnavailableError,
   getCatalogProducts,
 } from "@/lib/catalogProducts";
+import {
+  emptyCatalogHighlights,
+  getCatalogHighlights,
+} from "@/lib/catalogHighlights";
 
 const cacheHeaders = {
   "Cache-Control": "no-store",
@@ -9,13 +13,21 @@ const cacheHeaders = {
 
 export async function GET() {
   try {
+    const [products, highlights] = await Promise.all([
+      getCatalogProducts(),
+      getCatalogHighlights().catch(() => emptyCatalogHighlights),
+    ]);
+
     return Response.json(
-      { products: await getCatalogProducts() },
+      { highlights, products },
       { headers: cacheHeaders },
     );
   } catch (error) {
     if (error instanceof CatalogProductsUnavailableError) {
-      return Response.json({ products: [] }, { headers: cacheHeaders });
+      return Response.json(
+        { highlights: emptyCatalogHighlights, products: [] },
+        { headers: cacheHeaders },
+      );
     }
 
     console.error(error);

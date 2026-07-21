@@ -3,9 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { BsStarFill } from "react-icons/bs";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SelectedBar } from "@/components/SelectedBar";
-import { useCatalogProducts } from "@/components/useCatalogProducts";
+import {
+  useCatalogHighlights,
+  useCatalogProducts,
+} from "@/components/useCatalogProducts";
 import {
   applyLocalStock,
   useAdminMode,
@@ -138,6 +142,10 @@ export default function Home() {
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
   const catalogProducts = useCatalogProducts();
+  const catalogHighlights = useCatalogHighlights();
+  const highlightedFolderIds = new Set(catalogHighlights.folderIds);
+  const highlightedMeasureCodes = new Set(catalogHighlights.measureCodes);
+  const highlightedProductCodes = new Set(catalogHighlights.productCodes);
 
   const activeFolder = productFolders.find(
     (item) => item.id === selectedFolderId,
@@ -425,45 +433,79 @@ export default function Home() {
               aria-label="Tamaños disponibles"
               className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
-              {productFolders.map((item) => (
-                <article
-                  key={item.id}
-                  className="group min-h-29 border border-neutral-300 bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-neutral-950 hover:shadow-md"
-                >
-                  <button
-                    type="button"
-                    onClick={() => selectFolder(item.id)}
-                    className="block w-full text-left"
+              {productFolders.map((item) => {
+                const folderHighlighted = highlightedFolderIds.has(item.id);
+
+                return (
+                  <article
+                    key={item.id}
+                    className={`group min-h-29 border bg-white p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                      folderHighlighted
+                        ? "border-[#9A6D32] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_10px_28px_rgba(126,94,53,0.16)]"
+                        : "border-neutral-300 shadow-sm hover:border-neutral-950"
+                    }`}
                   >
-                    <span className="block text-lg font-semibold leading-tight text-center">
-                      {item.label}
-                    </span>
-                    <span className="block text-xs font-semibold text-neutral-500 transition group-hover:text-[#7E5E35] text-center">
-                      {getFolderProductCount(item.id)} cuadros disponibles
-                    </span>
-                  </button>
-                  <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center">
-                    {item.measures.map((measure) => (
-                      <button
-                        key={measure.code}
-                        type="button"
-                        onClick={() => selectMeasure(item.id, measure.code)}
-                        className="group/measure inline-flex items-center gap-1.5 border border-neutral-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-[#7E5E35] hover:shadow-md active:translate-y-0 group-hover:border-[#7E5E35]/50"
-                      >
-                        <span className="text-neutral-950 transition group-hover/measure:text-current">
-                          {measure.label}
-                        </span>{" "}
-                        <span className="font-medium text-neutral-500 transition group-hover/measure:text-current">
-                          {measure.size}
+                    {folderHighlighted ? (
+                      <div className="mb-2 text-center">
+                        <span className="inline-flex items-center gap-1.5 bg-[#7E5E35] px-2 py-1 text-[10px] font-semibold uppercase text-white">
+                          <BsStarFill />
+                          Lo mas vendido
                         </span>
-                        <span aria-hidden="true" className="text-xs">
-                          →
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </article>
-              ))}
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => selectFolder(item.id)}
+                      className="block w-full text-left"
+                    >
+                      <span className="block text-center text-lg font-semibold leading-tight">
+                        {item.label}
+                      </span>
+                      <span className="block text-center text-xs font-semibold text-neutral-500 transition group-hover:text-[#7E5E35]">
+                        {getFolderProductCount(item.id)} cuadros disponibles
+                      </span>
+                    </button>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                      {item.measures.map((measure) => {
+                        const measureHighlighted = highlightedMeasureCodes.has(
+                          measure.code,
+                        );
+
+                        return (
+                          <button
+                            key={measure.code}
+                            type="button"
+                            onClick={() =>
+                              selectMeasure(item.id, measure.code)
+                            }
+                            className={`group/measure inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                              measureHighlighted
+                                ? "border-[#9A6D32] bg-[#7E5E35]/10 text-[#5F4627] shadow-[0_0_0_2px_rgba(126,94,53,0.16),0_6px_18px_rgba(126,94,53,0.14)]"
+                                : "border-neutral-300 bg-white text-neutral-800 hover:border-[#7E5E35] group-hover:border-[#7E5E35]/50"
+                            }`}
+                          >
+                            {measureHighlighted ? (
+                              <BsStarFill
+                                className="shrink-0 text-[#7E5E35]"
+                                title="Lo mas vendido"
+                              />
+                            ) : null}
+                            <span className="text-neutral-950 transition group-hover/measure:text-current">
+                              {measure.label}
+                            </span>{" "}
+                            <span className="font-medium text-neutral-500 transition group-hover/measure:text-current">
+                              {measure.size}
+                            </span>
+                            <span aria-hidden="true" className="text-xs">
+                              →
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         ) : (
@@ -492,7 +534,13 @@ export default function Home() {
                     aria-labelledby={`${section.measure.code.toLowerCase()}-section-title`}
                   >
                     {activeFolder.measures.length > 1 ? (
-                      <div className="mb-3 flex flex-col items-center justify-center border-b border-neutral-400 py-2">
+                      <div
+                        className={`mb-3 flex flex-col items-center justify-center border-b py-2 ${
+                          highlightedMeasureCodes.has(section.measure.code)
+                            ? "border-[#9A6D32] bg-[#7E5E35]/5"
+                            : "border-neutral-400"
+                        }`}
+                      >
                         <h2
                           id={`${section.measure.code.toLowerCase()}-section-title`}
                           className="text-lg font-bold tracking-wider uppercase text-neutral-950 leading-4"
@@ -502,10 +550,17 @@ export default function Home() {
                         <p className="text-xs font-semibold text-neutral-600 tracking-wide">
                           {section.measure.size}
                         </p>
+                        {highlightedMeasureCodes.has(section.measure.code) ? (
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-[#5F4627]">
+                            <BsStarFill />
+                            Lo mas vendido
+                          </span>
+                        ) : null}
                       </div>
                     ) : null}
                     <ProductGrid
                       products={section.products}
+                      bestSellerCodes={highlightedProductCodes}
                       selectedIds={visibleSelectedIds}
                       selectedPriceIds={visibleSelectedPriceIds}
                       onToggle={toggleProduct}

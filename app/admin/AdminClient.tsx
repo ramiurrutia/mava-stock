@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
 import {
   notifyCatalogProductsChanged,
+  useCatalogHighlights,
   useCatalogProducts,
 } from "@/components/useCatalogProducts";
 import {
@@ -32,6 +33,7 @@ import {
   deleteAdminProduct,
   editAdminProduct,
   saveAdminProductOrder,
+  setAdminCatalogHighlight,
   useAdminMode,
   useFinishedOrders,
   useLocalStock,
@@ -49,7 +51,8 @@ import {
   type Product,
   type ProductMeasureCode,
 } from "@/data/products";
-import { BsArrowsMove } from "react-icons/bs";
+import type { CatalogHighlightTargetType } from "@/lib/catalogHighlights";
+import { BsArrowsMove, BsStar, BsStarFill } from "react-icons/bs";
 
 const allStockStates = "todos";
 const allFolders = "todas";
@@ -212,6 +215,10 @@ export function AdminClient() {
   const [orderMode, setOrderMode] = useState(false);
   const [orderingProducts, setOrderingProducts] = useState<Product[]>([]);
   const [savingProductOrder, setSavingProductOrder] = useState(false);
+  const [highlightOverrides, setHighlightOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [updatingHighlightKey, setUpdatingHighlightKey] = useState("");
   const [deletedProductCodes, setDeletedProductCodes] = useState<Set<string>>(
     () => new Set(),
   );
@@ -222,6 +229,7 @@ export function AdminClient() {
   const [newProductPriceMode, setNewProductPriceMode] =
     useState<NewProductPriceMode>(defaultNewProductPriceMode);
   const catalogProducts = useCatalogProducts(adminProducts);
+  const catalogHighlights = useCatalogHighlights();
   const visibleCatalogProducts = catalogProducts.filter(
     (product) => !deletedProductCodes.has(product.code),
   );
@@ -242,13 +250,7 @@ export function AdminClient() {
         product.code.toLowerCase().includes(normalizedSearch) ||
         product.name.toLowerCase().includes(normalizedSearch) ||
         product.category.toLowerCase().includes(normalizedSearch) ||
-        product.size.toLowerCase().includes(normalizedSearch) ||
-        Boolean(product.pairLabel?.toLowerCase().includes(normalizedSearch)) ||
-        Boolean(
-          product.pairRelatedCodes?.some((code) =>
-            code.toLowerCase().includes(normalizedSearch),
-          ),
-        );
+        product.size.toLowerCase().includes(normalizedSearch);
       const matchesStockState =
         stockState === allStockStates ||
         (stockState === "stock" && product.available) ||
@@ -319,6 +321,68 @@ export function AdminClient() {
       setActionError(
         error instanceof Error ? error.message : "No se pudo actualizar stock",
       );
+    }
+  }
+
+  function getHighlightKey(
+    targetType: CatalogHighlightTargetType,
+    targetId: string,
+  ) {
+    return `${targetType}:${targetId}`;
+  }
+
+  function isCatalogHighlightActive(
+    targetType: CatalogHighlightTargetType,
+    targetId: string,
+  ) {
+    const key = getHighlightKey(targetType, targetId);
+
+    if (key in highlightOverrides) {
+      return highlightOverrides[key];
+    }
+
+    if (targetType === "folder") {
+      return catalogHighlights.folderIds.some(
+        (folderId) => folderId === targetId,
+      );
+    }
+
+    if (targetType === "measure") {
+      return catalogHighlights.measureCodes.some(
+        (measureCode) => measureCode === targetId.toUpperCase(),
+      );
+    }
+
+    return catalogHighlights.productCodes.some(
+      (productCode) => productCode === targetId.toUpperCase(),
+    );
+  }
+
+  async function handleCatalogHighlightChange(
+    targetType: CatalogHighlightTargetType,
+    targetId: string,
+  ) {
+    const key = getHighlightKey(targetType, targetId);
+    const highlighted = !isCatalogHighlightActive(targetType, targetId);
+
+    setActionError("");
+    setUpdatingHighlightKey(key);
+
+    try {
+      await setAdminCatalogHighlight({ highlighted, targetId, targetType });
+      setHighlightOverrides((current) => ({
+        ...current,
+        [key]: highlighted,
+      }));
+      notifyCatalogProductsChanged();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar Lo mas vendido",
+      );
+    } finally {
+      setUpdatingHighlightKey("");
     }
   }
 
@@ -764,45 +828,118 @@ export function AdminClient() {
 
                     {productFolders.map((item) => {
                       const active = folder === item.id;
+                      const highlighted = isCatalogHighlightActive(
+                        "folder",
+                        item.id,
+                      );
+                      const highlightKey = getHighlightKey("folder", item.id);
 
                       return (
-                        <button
+                        <div
                           key={item.id}
-                          type="button"
-                          onClick={() => setFolder(item.id)}
-                          className={`min-h-18 min-w-0 border px-2.5 py-2 text-left transition sm:px-3 ${
+                          className={`flex min-h-18 min-w-0 flex-col border transition ${
                             active
                               ? "border-neutral-950 bg-neutral-950 text-white"
                               : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-950"
                           }`}
                         >
-                          <span
-                            className={`block text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
-                              active ? "text-neutral-300" : "text-neutral-400"
+                          <button
+                            type="button"
+                            onClick={() => setFolder(item.id)}
+                            className="flex-1 px-2.5 py-2 text-left sm:px-3"
+                          >
+                            <span
+                              className={`block text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
+                                active ? "text-neutral-300" : "text-neutral-400"
+                              }`}
+                            >
+                              {item.label}
+                            </span>
+                          </button>
+                          <div className="flex flex-wrap gap-1 border-t border-current/15 p-2">
+                            {item.measures.map((measureOption) => {
+                              const measureHighlighted =
+                                isCatalogHighlightActive(
+                                  "measure",
+                                  measureOption.code,
+                                );
+                              const measureHighlightKey = getHighlightKey(
+                                "measure",
+                                measureOption.code,
+                              );
+
+                              return (
+                                <button
+                                  key={measureOption.code}
+                                  type="button"
+                                  title={
+                                    measureHighlighted
+                                      ? `Quitar ${measureOption.label} de Lo mas vendido`
+                                      : `Marcar ${measureOption.label} como Lo mas vendido`
+                                  }
+                                  aria-pressed={measureHighlighted}
+                                  disabled={
+                                    updatingHighlightKey ===
+                                    measureHighlightKey
+                                  }
+                                  onClick={() => {
+                                    void handleCatalogHighlightChange(
+                                      "measure",
+                                      measureOption.code,
+                                    );
+                                  }}
+                                  className={`inline-flex min-w-0 items-center gap-1.5 border px-1.5 py-1 leading-none shadow-sm transition disabled:cursor-wait disabled:opacity-60 ${
+                                    measureHighlighted
+                                      ? "border-[#9A6D32] bg-[#7E5E35] text-white shadow-[0_0_0_2px_rgba(126,94,53,0.18)]"
+                                      : active
+                                        ? "border-white/30 bg-white/10 text-white hover:bg-white/20"
+                                        : "border-neutral-300 bg-neutral-50 text-neutral-700 hover:border-[#7E5E35]"
+                                  }`}
+                                >
+                                  {measureHighlighted ? (
+                                    <BsStarFill className="shrink-0" />
+                                  ) : (
+                                    <BsStar className="shrink-0" />
+                                  )}
+                                  <span className="text-[9px] font-semibold opacity-70">
+                                    {measureOption.label}
+                                  </span>
+                                  <span className="truncate text-[10px] font-semibold">
+                                    {measureOption.size}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            title={
+                              highlighted
+                                ? "Quitar de Lo mas vendido"
+                                : "Marcar carpeta como Lo mas vendido"
+                            }
+                            aria-pressed={highlighted}
+                            disabled={updatingHighlightKey === highlightKey}
+                            onClick={() => {
+                              void handleCatalogHighlightChange(
+                                "folder",
+                                item.id,
+                              );
+                            }}
+                            className={`flex h-8 items-center justify-center gap-1.5 border-t px-2 text-[10px] font-semibold uppercase transition disabled:cursor-wait disabled:opacity-60 ${
+                              highlighted
+                                ? "border-[#7E5E35] bg-[#7E5E35] text-white"
+                                : active
+                                  ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
+                                  : "border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-[#7E5E35]/10 hover:text-[#5F4627]"
                             }`}
                           >
-                            {item.label}
-                          </span>
-                          <span className="mt-1.5 flex flex-wrap gap-1">
-                            {item.measures.map((measureOption) => (
-                              <span
-                                key={measureOption.code}
-                                className={`inline-flex min-w-0 items-baseline gap-1 border px-1.5 py-1 leading-none ${
-                                  active
-                                    ? "border-white/30 bg-white/10 text-white"
-                                    : "border-neutral-300 bg-neutral-50 text-neutral-700"
-                                }`}
-                              >
-                                <span className="text-[9px] font-semibold opacity-60">
-                                  {measureOption.label}
-                                </span>
-                                <span className="truncate text-[11px] font-semibold">
-                                  {measureOption.size}
-                                </span>
-                              </span>
-                            ))}
-                          </span>
-                        </button>
+                            {highlighted ? <BsStarFill /> : <BsStar />}
+                            {updatingHighlightKey === highlightKey
+                              ? "Guardando"
+                              : "Toda la carpeta"}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -885,6 +1022,20 @@ export function AdminClient() {
                                   recentlyAdded={
                                     product.code === recentlyAddedProductCode
                                   }
+                                  bestSeller={isCatalogHighlightActive(
+                                    "product",
+                                    product.code,
+                                  )}
+                                  highlighting={
+                                    updatingHighlightKey ===
+                                    getHighlightKey("product", product.code)
+                                  }
+                                  onBestSellerChange={() =>
+                                    handleCatalogHighlightChange(
+                                      "product",
+                                      product.code,
+                                    )
+                                  }
                                   onAvailabilityChange={(available) =>
                                     runStockAction(() =>
                                       setProductAvailability(
@@ -927,6 +1078,20 @@ export function AdminClient() {
                               deleting={deletingProductCode === product.code}
                               recentlyAdded={
                                 product.code === recentlyAddedProductCode
+                              }
+                              bestSeller={isCatalogHighlightActive(
+                                "product",
+                                product.code,
+                              )}
+                              highlighting={
+                                updatingHighlightKey ===
+                                getHighlightKey("product", product.code)
+                              }
+                              onBestSellerChange={() =>
+                                handleCatalogHighlightChange(
+                                  "product",
+                                  product.code,
+                                )
                               }
                               onAvailabilityChange={(available) =>
                                 runStockAction(() =>
@@ -1692,11 +1857,14 @@ function SummaryBox({ label, value }: SummaryBoxProps) {
 }
 
 type AdminProductCardProps = {
+  bestSeller: boolean;
   deleting: boolean;
   dragging?: boolean;
+  highlighting: boolean;
   product: Product;
   recentlyAdded: boolean;
   onAvailabilityChange: (available: boolean) => Promise<unknown>;
+  onBestSellerChange: () => Promise<unknown>;
   onDelete?: () => Promise<unknown>;
   onEdit?: () => void;
   dragCardProps?: React.HTMLAttributes<HTMLElement>;
@@ -1734,27 +1902,29 @@ function SortableAdminProductCard(props: AdminProductCardProps) {
 }
 
 function AdminProductCard({
+  bestSeller,
   deleting,
   dragging = false,
+  highlighting,
   product,
   recentlyAdded,
   onAvailabilityChange,
+  onBestSellerChange,
   onDelete,
   onEdit,
   dragCardProps,
 }: AdminProductCardProps) {
-  const pairKind = product.pairSize && product.pairSize > 2 ? "Serie" : "Pareja";
-  const pairText = product.pairRelatedCodes?.length
-    ? `${pairKind} con ${product.pairRelatedCodes.join(", ")}`
-    : product.pairLabel;
-
   return (
     <article
       {...dragCardProps}
       className={`relative border bg-white p-3 shadow-sm transition ${
-        product.available
-          ? "border-neutral-200"
-          : "border-neutral-300 opacity-60 grayscale"
+        bestSeller
+          ? "border-[#9A6D32] shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
+          : product.available
+            ? "border-neutral-200"
+            : "border-neutral-300"
+      } ${
+        product.available ? "" : "opacity-60 grayscale"
       } ${
         dragCardProps
           ? "group/order cursor-grab select-none touch-none overflow-hidden hover:border-[#7E5E35] hover:shadow-md active:cursor-grabbing"
@@ -1772,9 +1942,9 @@ function AdminProductCard({
         >
           {product.available ? "Stock" : "Sin stock"}
         </span>
-        {product.pairGroupId ? (
+        {bestSeller ? (
           <span className="absolute right-3 top-3 z-30 border border-[#7E5E35]/30 bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase text-[#7E5E35] shadow-sm">
-            {pairKind} {product.pairPosition}/{product.pairSize}
+            Lo mas vendido
           </span>
         ) : null}
       </div>
@@ -1796,11 +1966,6 @@ function AdminProductCard({
               </span>
             ) : null}
           </div>
-          {pairText ? (
-            <p className="mt-1 truncate text-[11px] font-semibold text-[#7E5E35]">
-              {pairText}
-            </p>
-          ) : null}
         </div>
         <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">
           <p className="leading-tight text-neutral-500">{product.size}</p>
@@ -1827,6 +1992,22 @@ function AdminProductCard({
             Sin stock
           </button>
         </div>
+        <button
+          type="button"
+          aria-pressed={bestSeller}
+          onClick={() => {
+            void onBestSellerChange();
+          }}
+          disabled={highlighting}
+          className={`flex h-8 w-full items-center justify-center gap-1.5 border px-2 text-[10px] font-semibold uppercase transition disabled:cursor-wait disabled:opacity-60 ${
+            bestSeller
+              ? "border-[#7E5E35] bg-[#7E5E35] text-white"
+              : "border-neutral-300 bg-white text-neutral-700 hover:border-[#7E5E35] hover:text-[#5F4627]"
+          }`}
+        >
+          {bestSeller ? <BsStarFill /> : <BsStar />}
+          {highlighting ? "Guardando..." : "Lo mas vendido"}
+        </button>
         {onDelete ? (
           <div className={onEdit ? "grid grid-cols-2 gap-2" : ""}>
             {onEdit ? (

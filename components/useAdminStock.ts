@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CustomerOrder, OrderStatus } from "@/data/orders";
 import type { Product } from "@/data/products";
+import type {
+  CatalogHighlights,
+  CatalogHighlightTargetType,
+} from "@/lib/catalogHighlights";
 
 const adminModeChangeEvent = "mava-admin-mode-change";
 const stockChangeEvent = "mava-stock-change";
@@ -155,6 +159,31 @@ export async function saveAdminProductOrder(codes: string[]) {
 
   return (await response.json()) as {
     codes?: string[];
+  };
+}
+
+export async function setAdminCatalogHighlight(input: {
+  highlighted: boolean;
+  targetId: string;
+  targetType: CatalogHighlightTargetType;
+}) {
+  const response = await fetch("/api/admin/highlights", {
+    body: JSON.stringify(input),
+    headers: getAdminHeaders(),
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await getApiErrorMessage(
+        response,
+        "No se pudo actualizar Lo mas vendido",
+      ),
+    );
+  }
+
+  return (await response.json()) as {
+    highlights?: CatalogHighlights;
   };
 }
 

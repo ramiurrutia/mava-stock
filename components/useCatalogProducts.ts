@@ -2,13 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { products as staticProducts, type Product } from "@/data/products";
+import type { CatalogHighlights } from "@/lib/catalogHighlights";
 
 const catalogProductsChangeEvent = "mava-catalog-products-change";
+const catalogDataLoadedEvent = "mava-catalog-data-loaded";
 let cachedDynamicProducts: Product[] | null = null;
+let cachedCatalogHighlights: CatalogHighlights | null = null;
 let pendingDynamicProductsRequest: Promise<Product[] | null> | null = null;
 
 type ProductsResponse = {
+  highlights?: CatalogHighlights;
   products?: Product[];
+};
+
+const emptyHighlights: CatalogHighlights = {
+  folderIds: [],
+  measureCodes: [],
+  productCodes: [],
 };
 
 export function mergeCatalogProducts(
@@ -54,12 +64,26 @@ async function fetchDynamicProducts(forceRefresh = false) {
         | ProductsResponse
         | null;
 
+      if (Array.isArray(data?.highlights?.productCodes)) {
+        cachedCatalogHighlights = {
+          folderIds: Array.isArray(data.highlights.folderIds)
+            ? data.highlights.folderIds
+            : [],
+          measureCodes: Array.isArray(data.highlights.measureCodes)
+            ? data.highlights.measureCodes
+            : [],
+          productCodes: data.highlights.productCodes,
+        };
+      }
+
       return Array.isArray(data?.products) ? data.products : null;
     })
     .then((products) => {
       if (products) {
         cachedDynamicProducts = products;
       }
+
+      window.dispatchEvent(new Event(catalogDataLoadedEvent));
 
       return products;
     })
@@ -72,6 +96,31 @@ async function fetchDynamicProducts(forceRefresh = false) {
   pendingDynamicProductsRequest = request;
 
   return request;
+}
+
+export function useCatalogHighlights() {
+  const [highlights, setHighlights] =
+    useState<CatalogHighlights>(emptyHighlights);
+
+  useEffect(() => {
+    let ignore = false;
+
+    function syncHighlights() {
+      if (!ignore && cachedCatalogHighlights) {
+        setHighlights(cachedCatalogHighlights);
+      }
+    }
+
+    void fetchDynamicProducts().then(syncHighlights);
+    window.addEventListener(catalogDataLoadedEvent, syncHighlights);
+
+    return () => {
+      ignore = true;
+      window.removeEventListener(catalogDataLoadedEvent, syncHighlights);
+    };
+  }, []);
+
+  return highlights;
 }
 
 export function useCatalogProducts(initialProducts: Product[] = staticProducts) {
