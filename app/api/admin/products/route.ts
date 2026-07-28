@@ -453,6 +453,7 @@ export async function POST(request: Request) {
   }
 
   let storagePath = "";
+  let imageUploaded = false;
 
   try {
     const code = await getNextCatalogProductCode(measureCode);
@@ -460,6 +461,7 @@ export async function POST(request: Request) {
 
     storagePath = getDynamicStoragePath(measureCode, fileName);
     await uploadImageToSupabaseStorage(storagePath, imageBuffer, contentType);
+    imageUploaded = true;
     const product = await createCatalogProduct({
       code,
       height: dimensions.height,
@@ -476,7 +478,7 @@ export async function POST(request: Request) {
 
     return Response.json({ product }, { status: 201 });
   } catch (error) {
-    if (storagePath) {
+    if (imageUploaded && storagePath) {
       await deleteImageFromSupabaseStorage(storagePath).catch(() => {});
     }
     console.error(error);

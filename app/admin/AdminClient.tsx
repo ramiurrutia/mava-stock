@@ -592,7 +592,23 @@ export function AdminClient() {
     setSavingProductOrder(true);
 
     try {
+      const sortOrderByCode = new Map(
+        orderingProducts.map((product, sortOrder) => [
+          product.code,
+          sortOrder,
+        ]),
+      );
+
       await saveAdminProductOrder(orderingProducts.map((product) => product.code));
+      setAdminProducts((current) =>
+        current.map((product) => {
+          const sortOrder = sortOrderByCode.get(product.code);
+
+          return typeof sortOrder === "number"
+            ? { ...product, sortOrder }
+            : product;
+        }),
+      );
       notifyCatalogProductsChanged();
       setAddProductMessage("Se guardo el orden del catalogo.");
       setOrderMode(false);
