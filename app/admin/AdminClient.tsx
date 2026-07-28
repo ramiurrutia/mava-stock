@@ -214,6 +214,7 @@ export function AdminClient() {
   const [editingProductCode, setEditingProductCode] = useState("");
   const [orderMode, setOrderMode] = useState(false);
   const [orderingProducts, setOrderingProducts] = useState<Product[]>([]);
+  const [productOrderDirty, setProductOrderDirty] = useState(false);
   const [savingProductOrder, setSavingProductOrder] = useState(false);
   const [highlightOverrides, setHighlightOverrides] = useState<
     Record<string, boolean>
@@ -223,6 +224,9 @@ export function AdminClient() {
     () => new Set(),
   );
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+  const [productSortOrderOverrides, setProductSortOrderOverrides] = useState<
+    Record<string, number>
+  >({});
   const [recentlyAddedProductCode, setRecentlyAddedProductCode] = useState("");
   const [newProductMeasureCode, setNewProductMeasureCode] =
     useState<ProductMeasureCode>(defaultNewProductMeasureCode);
@@ -230,9 +234,15 @@ export function AdminClient() {
     useState<NewProductPriceMode>(defaultNewProductPriceMode);
   const catalogProducts = useCatalogProducts(adminProducts);
   const catalogHighlights = useCatalogHighlights();
-  const visibleCatalogProducts = catalogProducts.filter(
-    (product) => !deletedProductCodes.has(product.code),
-  );
+  const visibleCatalogProducts = catalogProducts
+    .filter((product) => !deletedProductCodes.has(product.code))
+    .map((product) => {
+      const sortOrder = productSortOrderOverrides[product.code];
+
+      return typeof sortOrder === "number"
+        ? { ...product, sortOrder }
+        : product;
+    });
   const productsWithLocalStock = applyLocalStock(
     visibleCatalogProducts,
     unavailableProductIds,
@@ -297,6 +307,23 @@ export function AdminClient() {
 
     return () => window.clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    if (!productOrderDirty) {
+      return;
+    }
+
+    function confirmOrderReload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", confirmOrderReload);
+
+    return () => {
+      window.removeEventListener("beforeunload", confirmOrderReload);
+    };
+  }, [productOrderDirty]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -538,13 +565,33 @@ export function AdminClient() {
   }
 
   function startProductOrderMode() {
-    setOrderingProducts(filteredProducts);
+    const measureCodes = new Set(
+      filteredProducts.map((product) => product.measureCode),
+    );
+    const completeMeasureProducts = orderProductsByManualOrder(
+      productsWithLocalStock.filter((product) =>
+        measureCodes.has(product.measureCode),
+      ),
+    );
+
+    setOrderingProducts(completeMeasureProducts);
+    setProductOrderDirty(false);
     setOrderMode(true);
     setActionError("");
     setAddProductMessage("");
   }
 
   function cancelProductOrderMode() {
+    if (
+      productOrderDirty &&
+      !window.confirm(
+        "Hay cambios de orden sin guardar. Queres descartarlos?",
+      )
+    ) {
+      return;
+    }
+
+    setProductOrderDirty(false);
     setOrderMode(false);
     setOrderingProducts([]);
   }
@@ -558,33 +605,34 @@ export function AdminClient() {
       return;
     }
 
-    setOrderingProducts((current) => {
-      const activeProduct = current.find(
-        (product) => product.code === activeCode,
-      );
-      const overProduct = current.find((product) => product.code === overCode);
+    const activeProduct = orderingProducts.find(
+      (product) => product.code === activeCode,
+    );
+    const overProduct = orderingProducts.find(
+      (product) => product.code === overCode,
+    );
 
-      if (
-        !activeProduct ||
-        !overProduct ||
-        activeProduct.measureCode !== overProduct.measureCode
-      ) {
-        return current;
-      }
+    if (
+      !activeProduct ||
+      !overProduct ||
+      activeProduct.measureCode !== overProduct.measureCode
+    ) {
+      return;
+    }
 
-      const oldIndex = current.findIndex(
-        (product) => product.code === activeCode,
-      );
-      const newIndex = current.findIndex(
-        (product) => product.code === overCode,
-      );
+    const oldIndex = orderingProducts.findIndex(
+      (product) => product.code === activeCode,
+    );
+    const newIndex = orderingProducts.findIndex(
+      (product) => product.code === overCode,
+    );
 
-      if (oldIndex < 0 || newIndex < 0) {
-        return current;
-      }
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
 
-      return arrayMove(current, oldIndex, newIndex);
-    });
+    setOrderingProducts(arrayMove(orderingProducts, oldIndex, newIndex));
+    setProductOrderDirty(true);
   }
 
   async function handleSaveProductOrder() {
@@ -600,17 +648,18 @@ export function AdminClient() {
       );
 
       await saveAdminProductOrder(orderingProducts.map((product) => product.code));
-      setAdminProducts((current) =>
-        current.map((product) => {
-          const sortOrder = sortOrderByCode.get(product.code);
+      setProductSortOrderOverrides((current) => {
+        const next = { ...current };
 
-          return typeof sortOrder === "number"
-            ? { ...product, sortOrder }
-            : product;
-        }),
-      );
+        sortOrderByCode.forEach((sortOrder, code) => {
+          next[code] = sortOrder;
+        });
+
+        return next;
+      });
       notifyCatalogProductsChanged();
       setAddProductMessage("Se guardo el orden del catalogo.");
+      setProductOrderDirty(false);
       setOrderMode(false);
       setOrderingProducts([]);
     } catch (error) {

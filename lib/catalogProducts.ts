@@ -633,8 +633,21 @@ export async function updateCatalogProductOrder(codes: string[]) {
       method: "POST",
     },
   );
+  const rows = (await response.json()) as CatalogProductOrderRow[];
+  const savedOrderByCode = getCatalogProductOrderByCode(rows);
+  const orderWasConfirmed =
+    savedOrderByCode.size === uniqueCodes.length &&
+    uniqueCodes.every(
+      (code, sortOrder) => savedOrderByCode.get(code) === sortOrder,
+    );
 
-  return (await response.json()) as CatalogProductOrderRow[];
+  if (!orderWasConfirmed) {
+    throw new CatalogProductsUnavailableError(
+      "Supabase no confirmo todas las posiciones del catalogo.",
+    );
+  }
+
+  return rows;
 }
 
 export async function deleteCatalogProduct(

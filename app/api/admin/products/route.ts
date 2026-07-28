@@ -453,12 +453,14 @@ export async function POST(request: Request) {
   }
 
   let storagePath = "";
+  let productCode = "";
   let imageUploaded = false;
 
   try {
     const code = await getNextCatalogProductCode(measureCode);
     const fileName = `${code}${extension}`;
 
+    productCode = code;
     storagePath = getDynamicStoragePath(measureCode, fileName);
     await uploadImageToSupabaseStorage(storagePath, imageBuffer, contentType);
     imageUploaded = true;
@@ -478,6 +480,10 @@ export async function POST(request: Request) {
 
     return Response.json({ product }, { status: 201 });
   } catch (error) {
+    if (imageUploaded && productCode) {
+      await deleteCatalogProduct(productCode).catch(() => {});
+    }
+
     if (imageUploaded && storagePath) {
       await deleteImageFromSupabaseStorage(storagePath).catch(() => {});
     }
