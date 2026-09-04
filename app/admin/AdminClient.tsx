@@ -2157,17 +2157,17 @@ function AdminProductCard({
   onEdit,
   dragCardProps,
 }: AdminProductCardProps) {
+  const isUnavailable = !product.available;
+
   return (
     <article
       {...dragCardProps}
-      className={`relative border bg-white p-3 shadow-sm transition ${
-        bestSeller
-          ? "border-[#9A6D32] shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
-          : product.available
-            ? "border-neutral-200"
-            : "border-neutral-300"
-      } ${
-        product.available ? "" : "opacity-60 grayscale"
+      className={`relative border p-3 shadow-sm transition ${
+        isUnavailable
+          ? "border-neutral-500 bg-neutral-100 shadow-[inset_0_4px_0_#171717]"
+          : bestSeller
+            ? "border-[#9A6D32] bg-white shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
+            : "border-neutral-200 bg-white"
       } ${
         dragCardProps
           ? "group/order cursor-grab select-none touch-none overflow-hidden hover:border-[#7E5E35] hover:shadow-md active:cursor-grabbing"
@@ -2176,21 +2176,29 @@ function AdminProductCard({
         dragging ? "scale-[0.98] border-[#7E5E35] opacity-55" : ""
       }`}
     >
-      <div className="relative bg-[#efede8] p-2">
+      <div
+        className={`relative p-2 ${
+          isUnavailable ? "bg-neutral-200" : "bg-[#efede8]"
+        }`}
+      >
         <FramePreview product={product} />
-        <span
-          className={`absolute left-3 top-3 z-30 px-2 py-1 text-[11px] font-semibold text-white ${
-            product.available ? "bg-[#7E5E35]" : "bg-neutral-950"
-          }`}
-        >
-          {product.available ? "Stock" : "Sin stock"}
-        </span>
+        {product.available ? (
+          <span className="absolute left-3 top-3 z-30 bg-[#7E5E35] px-2 py-1 text-[11px] font-semibold text-white">
+            Stock
+          </span>
+        ) : null}
         {bestSeller ? (
           <span className="absolute right-3 top-3 z-30 border border-[#7E5E35]/30 bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase text-[#7E5E35] shadow-sm">
             Lo mas vendido
           </span>
         ) : null}
       </div>
+
+      {isUnavailable ? (
+        <div className="-mx-3 mt-2 bg-neutral-950/80 px-3 py-1 text-center text-[11px] font-bold uppercase text-white">
+          Sin stock
+        </div>
+      ) : null}
 
       <div className="mt-3 space-y-2">
         <div>
@@ -2210,7 +2218,7 @@ function AdminProductCard({
             ) : null}
           </div>
         </div>
-        <div className="space-y-1 border-t border-neutral-100 pt-3 text-xs">
+        <div className="space-y-1 border-t border-neutral-200 pt-3 text-xs">
           <p className="leading-tight text-neutral-500">{product.size}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -2220,7 +2228,7 @@ function AdminProductCard({
               void onAvailabilityChange(true);
             }}
             disabled={product.available}
-            className="h-10 border border-[#7E5E35] bg-white px-2 text-xs font-semibold text-[#5F4627] transition hover:bg-[#7E5E35] hover:text-white disabled:cursor-not-allowed disabled:bg-[#7E5E35] disabled:text-white"
+            className="h-10 border border-[#7E5E35] bg-white px-2 text-xs font-semibold text-[#5F4627] transition hover:bg-[#7E5E35] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           >
             Con stock
           </button>
@@ -2230,7 +2238,7 @@ function AdminProductCard({
               void onAvailabilityChange(false);
             }}
             disabled={!product.available}
-            className="h-10 border border-neutral-950 bg-white px-2 text-xs font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white disabled:cursor-not-allowed disabled:bg-neutral-950 disabled:text-white"
+            className="h-10 border border-neutral-950 bg-white px-2 text-xs font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           >
             Sin stock
           </button>
