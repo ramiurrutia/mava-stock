@@ -49,10 +49,17 @@ import {
   orderProductsByManualOrder,
   productFolders,
   type Product,
+  type ProductFolderId,
   type ProductMeasureCode,
 } from "@/data/products";
 import type { CatalogHighlightTargetType } from "@/lib/catalogHighlights";
-import { BsArrowsMove, BsStar, BsStarFill } from "react-icons/bs";
+import {
+  BsArchive,
+  BsArrowsMove,
+  BsFolder2Open,
+  BsStar,
+  BsStarFill,
+} from "react-icons/bs";
 
 const allStockStates = "todos";
 const allFolders = "todas";
@@ -60,6 +67,9 @@ const recentlyAddedProductCodeKey = "mava-recently-added-product-code";
 const recentlyAddedDurationMs = 24 * 60 * 60 * 1000;
 type AdminView = "stock" | "pedidos";
 type NewProductPriceMode = "base" | "blanco" | "arpillera" | "ambos";
+type BulkStockTarget =
+  | `folder:${ProductFolderId}`
+  | `measure:${ProductMeasureCode}`;
 
 const defaultNewProductMeasureCode: ProductMeasureCode = "XG";
 const defaultNewProductPriceMode: NewProductPriceMode = "ambos";
@@ -67,6 +77,16 @@ const newProductMeasureOptions = productFolders.flatMap((folder) =>
   folder.measures.map((measure) => ({
     ...measure,
     folderLabel: folder.label,
+  })),
+);
+const bulkStockFolderOptions = productFolders.map((folder) => ({
+  id: `folder:${folder.id}` as BulkStockTarget,
+  label: `${folder.label} (${folder.description})`,
+}));
+const bulkStockMeasureOptions = productFolders.flatMap((folder) =>
+  folder.measures.map((measure) => ({
+    id: `measure:${measure.code}` as BulkStockTarget,
+    label: `${measure.label} - ${measure.size}`,
   })),
 );
 const defaultPricesByMeasureCode: Record<
@@ -206,6 +226,11 @@ export function AdminClient() {
   const [adminView, setAdminView] = useState<AdminView>("stock");
   const [actionError, setActionError] = useState("");
   const [stockingOrderId, setStockingOrderId] = useState("");
+  const [bulkStockTarget, setBulkStockTarget] =
+    useState<BulkStockTarget>("measure:XGM");
+  const [bulkStockAction, setBulkStockAction] = useState<"" | "all" | "target">(
+    "",
+  );
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
   const [addProductMessage, setAddProductMessage] = useState("");
@@ -253,6 +278,17 @@ export function AdminClient() {
     (product) => product.available,
   ).length;
   const unavailableCount = productsWithLocalStock.length - availableCount;
+  const selectedBulkStockProducts = productsWithLocalStock.filter((product) => {
+    if (!product.available) {
+      return false;
+    }
+
+    const [targetType, targetId] = bulkStockTarget.split(":");
+
+    return targetType === "folder"
+      ? product.folderId === targetId
+      : product.measureCode === targetId;
+  });
   const filteredProducts = orderProductsByManualOrder(
     productsWithLocalStock.filter((product) => {
       const matchesSearch =
@@ -581,6 +617,72 @@ export function AdminClient() {
     setAddProductMessage("");
   }
 
+  async function markProductGroupUnavailable(
+    productsToUpdate: Product[],
+    label: string,
+    action: "all" | "target",
+  ) {
+    const productIds = Array.from(
+      new Set(
+        productsToUpdate
+          .filter((product) => product.available)
+          .map((product) => product.id),
+      ),
+    );
+
+    if (productIds.length === 0) {
+      setAddProductMessage(`${label} ya esta completamente sin stock.`);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Vas a sacar de stock ${productIds.length} cuadros de ${label}. Queres continuar?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError("");
+    setAddProductMessage("");
+    setBulkStockAction(action);
+
+    try {
+      await markProductsUnavailable(productIds);
+      setAddProductMessage(
+        `Se sacaron de stock ${productIds.length} cuadros de ${label}.`,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el stock masivo",
+      );
+    } finally {
+      setBulkStockAction("");
+    }
+  }
+
+  function handleMarkBulkTargetUnavailable() {
+    const option = [...bulkStockFolderOptions, ...bulkStockMeasureOptions].find(
+      (item) => item.id === bulkStockTarget,
+    );
+
+    void markProductGroupUnavailable(
+      selectedBulkStockProducts,
+      option?.label ?? "la seleccion",
+      "target",
+    );
+  }
+
+  function handleMarkAllUnavailable() {
+    void markProductGroupUnavailable(
+      productsWithLocalStock,
+      "todo el catalogo",
+      "all",
+    );
+  }
+
   function cancelProductOrderMode() {
     if (
       productOrderDirty &&
@@ -814,6 +916,82 @@ export function AdminClient() {
                     product={editingProduct}
                   />
                 ) : null}
+
+                <div className="border border-red-200 bg-red-50 p-3">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,1fr)_auto] lg:items-end">
+                    <div>
+                      <p className="text-sm font-semibold text-red-950">
+                        Stock masivo
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-red-800/80">
+                        Saca del catalogo publico una carpeta, una medida o
+                        todos los cuadros en una sola operacion.
+                      </p>
+                    </div>
+
+                    <label className="space-y-1.5 text-xs font-semibold text-red-950">
+                      Carpeta o medida
+                      <select
+                        value={bulkStockTarget}
+                        onChange={(event) =>
+                          setBulkStockTarget(
+                            event.target.value as BulkStockTarget,
+                          )
+                        }
+                        disabled={bulkStockAction !== "" || orderMode}
+                        className="h-10 w-full border border-red-200 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-red-600 disabled:cursor-not-allowed disabled:bg-neutral-100"
+                      >
+                        <optgroup label="Carpetas">
+                          {bulkStockFolderOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Medidas">
+                          {bulkStockMeasureOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </label>
+
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      <button
+                        type="button"
+                        onClick={handleMarkBulkTargetUnavailable}
+                        disabled={
+                          bulkStockAction !== "" ||
+                          orderMode ||
+                          selectedBulkStockProducts.length === 0
+                        }
+                        className="inline-flex h-10 items-center justify-center gap-2 border border-red-700 bg-white px-3 text-xs font-semibold text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-400"
+                      >
+                        <BsFolder2Open className="text-base" />
+                        {bulkStockAction === "target"
+                          ? "Actualizando..."
+                          : `Sacar seleccion (${selectedBulkStockProducts.length})`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleMarkAllUnavailable}
+                        disabled={
+                          bulkStockAction !== "" ||
+                          orderMode ||
+                          availableCount === 0
+                        }
+                        className="inline-flex h-10 items-center justify-center gap-2 bg-red-700 px-3 text-xs font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                      >
+                        <BsArchive className="text-base" />
+                        {bulkStockAction === "all"
+                          ? "Actualizando..."
+                          : `Sacar todo (${availableCount})`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="space-y-2 text-sm font-semibold text-neutral-700">
