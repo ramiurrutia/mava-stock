@@ -20,7 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
 import {
   notifyCatalogProductsChanged,
@@ -63,6 +63,7 @@ import {
 
 const allStockStates = "todos";
 const allFolders = "todas";
+const adminScrollPositionKey = "mava-admin-scroll-position";
 const recentlyAddedProductCodeKey = "mava-recently-added-product-code";
 const recentlyAddedDurationMs = 24 * 60 * 60 * 1000;
 type AdminView = "stock" | "pedidos";
@@ -253,6 +254,7 @@ export function AdminClient() {
     Record<string, number>
   >({});
   const [recentlyAddedProductCode, setRecentlyAddedProductCode] = useState("");
+  const adminScrollRestored = useRef(false);
   const [newProductMeasureCode, setNewProductMeasureCode] =
     useState<ProductMeasureCode>(defaultNewProductMeasureCode);
   const [newProductPriceMode, setNewProductPriceMode] =
@@ -335,6 +337,98 @@ export function AdminClient() {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  useEffect(() => {
+    if (!isAdmin || adminScrollRestored.current) {
+      return;
+    }
+
+    adminScrollRestored.current = true;
+
+    let storedPosition = 0;
+
+    try {
+      storedPosition = Number(
+        window.sessionStorage.getItem(adminScrollPositionKey),
+      );
+    } catch {
+      return;
+    }
+
+    if (!Number.isFinite(storedPosition) || storedPosition <= 0) {
+      return;
+    }
+
+    let attempts = 0;
+    let timeoutId: number | undefined;
+
+    function restoreScrollPosition() {
+      const maximumScroll = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+
+      window.scrollTo(0, Math.min(storedPosition, maximumScroll));
+      attempts += 1;
+
+      if (maximumScroll < storedPosition && attempts < 10) {
+        timeoutId = window.setTimeout(restoreScrollPosition, 100);
+      }
+    }
+
+    const frameId = window.requestAnimationFrame(restoreScrollPosition);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
+    let frameId: number | undefined;
+
+    function saveScrollPosition() {
+      frameId = undefined;
+
+      try {
+        window.sessionStorage.setItem(
+          adminScrollPositionKey,
+          String(window.scrollY),
+        );
+      } catch {
+        // Storage can be unavailable in restrictive browser modes.
+      }
+    }
+
+    function queueScrollPositionSave() {
+      if (frameId === undefined) {
+        frameId = window.requestAnimationFrame(saveScrollPosition);
+      }
+    }
+
+    window.addEventListener("scroll", queueScrollPositionSave, {
+      passive: true,
+    });
+    window.addEventListener("pagehide", saveScrollPosition);
+
+    return () => {
+      window.removeEventListener("scroll", queueScrollPositionSave);
+      window.removeEventListener("pagehide", saveScrollPosition);
+
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      saveScrollPosition();
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -2162,12 +2256,12 @@ function AdminProductCard({
   return (
     <article
       {...dragCardProps}
-      className={`relative border shadow-sm transition ${
+      className={`relative transition ${
         isUnavailable
-          ? "border-neutral-900 bg-neutral-200 border-2 shadow-[inset_0_4px_0_#171717]"
+          ? "border border-neutral-200 bg-white shadow-none"
           : bestSeller
-            ? "border-[#9A6D32] bg-white shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
-            : "border-neutral-200 bg-white"
+            ? "border-2 border-[#9A6D32] bg-neutral-200 shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
+            : "border-5 border-neutral-900 bg-neutral-200 shadow-sm"
       } ${
         dragCardProps
           ? "group/order cursor-grab select-none touch-none overflow-hidden hover:border-[#7E5E35] hover:shadow-md active:cursor-grabbing"
@@ -2178,7 +2272,7 @@ function AdminProductCard({
     >
       <div
         className={`relative p-2 ${
-          isUnavailable ? "bg-neutral-200" : "bg-[#efede8]"
+          isUnavailable ? "bg-white" : "bg-neutral-200"
         }`}
       >
         <FramePreview product={product} />
@@ -2186,19 +2280,17 @@ function AdminProductCard({
           <span className="absolute left-3 top-3 z-30 bg-[#7E5E35] px-2 py-1 text-[11px] font-semibold text-white">
             Stock
           </span>
-        ) : null}
+        ) : (
+          <span className="absolute left-3 top-3 z-30 border border-neutral-950 bg-white/95 px-2 py-1 text-[11px] font-semibold text-neutral-950">
+            Sin stock
+          </span>
+        )}
         {bestSeller ? (
           <span className="absolute right-3 top-3 z-30 border border-[#7E5E35]/30 bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase text-[#7E5E35] shadow-sm">
             Lo mas vendido
           </span>
         ) : null}
       </div>
-
-      {isUnavailable ? (
-        <div className="bg-neutral-950/80 px-2 py-0.5 text-center text-[11px] font-bold uppercase text-white">
-          Sin stock
-        </div>
-      ) : null}
 
       <div className="space-y-2 p-3">
         <div>
