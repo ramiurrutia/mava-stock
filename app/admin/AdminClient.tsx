@@ -2162,9 +2162,9 @@ function AdminProductCard({
   return (
     <article
       {...dragCardProps}
-      className={`relative border p-3 shadow-sm transition ${
+      className={`relative border shadow-sm transition ${
         isUnavailable
-          ? "border-neutral-500 bg-neutral-100 shadow-[inset_0_4px_0_#171717]"
+          ? "border-neutral-900 bg-neutral-200 border-2 shadow-[inset_0_4px_0_#171717]"
           : bestSeller
             ? "border-[#9A6D32] bg-white shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
             : "border-neutral-200 bg-white"
@@ -2195,12 +2195,12 @@ function AdminProductCard({
       </div>
 
       {isUnavailable ? (
-        <div className="-mx-3 mt-2 bg-neutral-950/80 px-3 py-1 text-center text-[11px] font-bold uppercase text-white">
+        <div className="bg-neutral-950/80 px-2 py-0.5 text-center text-[11px] font-bold uppercase text-white">
           Sin stock
         </div>
       ) : null}
 
-      <div className="mt-3 space-y-2">
+      <div className="space-y-2 p-3">
         <div>
           <div className="flex items-start justify-between gap-2">
             <h2 className="flex flex-col font-mono text-sm font-semibold uppercase">
