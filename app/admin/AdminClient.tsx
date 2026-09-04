@@ -2258,10 +2258,10 @@ function AdminProductCard({
       {...dragCardProps}
       className={`relative transition ${
         isUnavailable
-          ? "border border-neutral-200 bg-white shadow-none"
+          ? "border-5 border-[#7E5E35]/50 bg-white shadow-none"
           : bestSeller
-            ? "border-2 border-[#9A6D32] bg-neutral-200 shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
-            : "border-5 border-neutral-900 bg-neutral-200 shadow-sm"
+            ? "border-5 border-[#9A6D32] bg-neutral-200 shadow-[0_0_0_2px_rgba(126,94,53,0.18),0_10px_28px_rgba(126,94,53,0.16)]"
+            : "border-5 border-neutral-950 bg-[#7E5E35]/20 shadow-sm"
       } ${
         dragCardProps
           ? "group/order cursor-grab select-none touch-none overflow-hidden hover:border-[#7E5E35] hover:shadow-md active:cursor-grabbing"
