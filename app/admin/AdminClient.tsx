@@ -56,6 +56,7 @@ import type { CatalogHighlightTargetType } from "@/lib/catalogHighlights";
 import {
   BsArchive,
   BsArrowsMove,
+  BsCheckLg,
   BsFolder2Open,
   BsStar,
   BsStarFill,
@@ -207,10 +208,16 @@ function writeRecentlyAddedProductCode(code: string) {
 export function AdminClient() {
   const { checkingAdmin, isAdmin, loginAdmin, logoutAdmin } = useAdminMode();
   const {
+    deductOrderStock,
+    deductedOrderIds,
     markProductsUnavailable,
+    setProductStockQuantity,
+    stockQuantities,
+    stockLoading,
+    stockError,
     setProductAvailability,
     unavailableProductIds,
-  } = useLocalStock();
+  } = useLocalStock({ admin: isAdmin });
   const {
     deleteOrder,
     deletingOrderId,
@@ -226,6 +233,7 @@ export function AdminClient() {
   const [folder, setFolder] = useState(allFolders);
   const [adminView, setAdminView] = useState<AdminView>("stock");
   const [actionError, setActionError] = useState("");
+  const [stockSaving, setStockSaving] = useState(false);
   const [stockingOrderId, setStockingOrderId] = useState("");
   const [bulkStockTarget, setBulkStockTarget] =
     useState<BulkStockTarget>("measure:XGM");
@@ -471,6 +479,7 @@ export function AdminClient() {
 
   async function runStockAction(action: () => Promise<unknown>) {
     setActionError("");
+    setStockSaving(true);
 
     try {
       await action();
@@ -478,6 +487,8 @@ export function AdminClient() {
       setActionError(
         error instanceof Error ? error.message : "No se pudo actualizar stock",
       );
+    } finally {
+      setStockSaving(false);
     }
   }
 
@@ -555,7 +566,7 @@ export function AdminClient() {
     setStockingOrderId(order.id);
 
     try {
-      await runStockAction(() => markProductsUnavailable(productIds));
+      await runStockAction(() => deductOrderStock(order.id));
     } finally {
       setStockingOrderId("");
     }
@@ -957,10 +968,12 @@ export function AdminClient() {
               </div>
             ) : null}
 
-            <div className="grid gap-3 md:grid-cols-3">
+            {stockError ? <p role="alert" className="text-sm text-red-700">{stockError}</p> : null}
+            <div className="grid gap-3 md:grid-cols-4">
               <SummaryBox label="En stock" value={availableCount} />
               <SummaryBox label="Sin stock" value={unavailableCount} />
               <SummaryBox label="Total" value={productsWithLocalStock.length} />
+              <SummaryBox label="Unidades" value={productsWithLocalStock.reduce((total, product) => total + (stockQuantities[product.id] ?? (product.available ? 1 : 0)), 0)} />
             </div>
 
             <div className="flex flex-wrap gap-2 border-b border-neutral-200 pb-4">
@@ -1353,6 +1366,9 @@ export function AdminClient() {
                                 <SortableAdminProductCard
                                   key={product.id}
                                   product={product}
+                                  stockQuantity={stockQuantities[product.id] ?? (product.available ? 1 : 0)}
+                                  stockDisabled={stockLoading || stockSaving || Boolean(stockError) || bulkStockAction !== ""}
+                                  onStockQuantityChange={(quantity) => runStockAction(() => setProductStockQuantity(product.id, quantity))}
                                   deleting={
                                     deletingProductCode === product.code
                                   }
@@ -1412,6 +1428,9 @@ export function AdminClient() {
                             <AdminProductCard
                               key={product.id}
                               product={product}
+                              stockQuantity={stockQuantities[product.id] ?? (product.available ? 1 : 0)}
+                              stockDisabled={stockLoading || stockSaving || Boolean(stockError) || bulkStockAction !== ""}
+                              onStockQuantityChange={(quantity) => runStockAction(() => setProductStockQuantity(product.id, quantity))}
                               deleting={deletingProductCode === product.code}
                               recentlyAdded={
                                 product.code === recentlyAddedProductCode
@@ -1488,8 +1507,9 @@ export function AdminClient() {
                       <AdminOrderCard
                         key={order.id}
                         order={order}
+                        stockDeducted={deductedOrderIds.includes(order.id)}
                         deleting={deletingOrderId === order.id}
-                        removingFromStock={stockingOrderId === order.id}
+                        removingFromStock={stockingOrderId === order.id || stockSaving || stockLoading || Boolean(stockError)}
                         updating={updatingOrderId === order.id}
                         onDelete={() => deleteOrder(order.id)}
                         onRemoveFromStock={() => removeOrderFromStock(order)}
@@ -1989,6 +2009,7 @@ type AdminOrderCardProps = {
   order: CustomerOrder;
   onDelete: () => Promise<unknown>;
   onRemoveFromStock: () => Promise<unknown>;
+  stockDeducted: boolean;
   removingFromStock: boolean;
   updating: boolean;
   onStatusChange: (status: OrderStatus) => Promise<unknown>;
@@ -2028,6 +2049,7 @@ function AdminOrderCard({
   order,
   onDelete,
   onRemoveFromStock,
+  stockDeducted,
   removingFromStock,
   updating,
   onStatusChange,
@@ -2048,7 +2070,7 @@ function AdminOrderCard({
 
   function handleRemoveFromStock() {
     const confirmed = window.confirm(
-      `Vas a marcar sin stock los ${order.items.length} cuadros del pedido #${getShortOrderId(order.id)}. Queres continuar?`,
+      `Vas a descontar una unidad de cada cuadro del pedido #${getShortOrderId(order.id)}. Queres continuar?`,
     );
 
     if (confirmed) {
@@ -2139,10 +2161,10 @@ function AdminOrderCard({
           <button
             type="button"
             onClick={handleRemoveFromStock}
-            disabled={deleting || updating || removingFromStock}
+            disabled={deleting || updating || removingFromStock || stockDeducted}
             className="border border-neutral-950 bg-neutral-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300"
           >
-            {removingFromStock ? "Sacando..." : "Sacar de stock"}
+            {stockDeducted ? "Stock descontado" : removingFromStock ? "Actualizando..." : "Descontar stock"}
           </button>
           <button
             type="button"
@@ -2193,7 +2215,65 @@ function SummaryBox({ label, value }: SummaryBoxProps) {
   );
 }
 
+function AdminStockQuantity({ code, quantity, disabled, onSave }: {
+  code: string;
+  quantity: number;
+  disabled: boolean;
+  onSave: (quantity: number) => Promise<unknown>;
+}) {
+  const [draft, setDraft] = useState(String(quantity));
+  const [saving, setSaving] = useState(false);
+  const changed = draft !== "" && Number(draft) !== quantity;
+
+  return (
+    <form
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (!changed || saving || disabled) return;
+        setSaving(true);
+        try {
+          await onSave(Number(draft));
+        } finally {
+          setSaving(false);
+        }
+      }}
+      className="space-y-1"
+    >
+      <label htmlFor={`stock-${code}`} className="block text-xs font-semibold text-neutral-700">
+        Stock interno
+      </label>
+      <div className="grid grid-cols-[minmax(0,1fr)_2.25rem] gap-1">
+        <input
+          id={`stock-${code}`}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={9999}
+          step={1}
+          required
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          disabled={disabled || saving}
+          className="h-9 w-full min-w-0 border border-neutral-400 bg-white px-2 text-sm tabular-nums disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          title={`Guardar stock de ${code}`}
+          aria-label={`Guardar stock de ${code}`}
+          disabled={disabled || saving || !changed}
+          className="flex h-9 w-9 items-center justify-center border border-neutral-950 bg-neutral-950 text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <BsCheckLg aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
 type AdminProductCardProps = {
+  stockQuantity: number;
+  stockDisabled: boolean;
+  onStockQuantityChange: (quantity: number) => Promise<unknown>;
   bestSeller: boolean;
   deleting: boolean;
   dragging?: boolean;
@@ -2239,6 +2319,9 @@ function SortableAdminProductCard(props: AdminProductCardProps) {
 }
 
 function AdminProductCard({
+  stockQuantity,
+  stockDisabled,
+  onStockQuantityChange,
   bestSeller,
   deleting,
   dragging = false,
@@ -2313,13 +2396,20 @@ function AdminProductCard({
         <div className="space-y-1 border-t border-neutral-200 pt-3 text-xs">
           <p className="leading-tight text-neutral-500">{product.size}</p>
         </div>
+        <AdminStockQuantity
+          key={stockQuantity}
+          code={product.code}
+          quantity={stockQuantity}
+          disabled={stockDisabled || Boolean(dragCardProps)}
+          onSave={onStockQuantityChange}
+        />
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => {
               void onAvailabilityChange(true);
             }}
-            disabled={product.available}
+            disabled={stockDisabled || product.available}
             className="h-10 border border-[#7E5E35] bg-white px-2 text-xs font-semibold text-[#5F4627] transition hover:bg-[#7E5E35] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           >
             Con stock
@@ -2329,7 +2419,7 @@ function AdminProductCard({
             onClick={() => {
               void onAvailabilityChange(false);
             }}
-            disabled={!product.available}
+            disabled={stockDisabled || !product.available}
             className="h-10 border border-neutral-950 bg-white px-2 text-xs font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           >
             Sin stock

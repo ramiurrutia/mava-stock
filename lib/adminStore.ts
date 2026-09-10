@@ -12,6 +12,8 @@ export type FinishedOrderLog = {
 };
 
 type AdminStore = {
+  remoteUpdatedAt?: string | null;
+  stockQuantities: Record<string, number>;
   unavailableProductIds: string[];
   orders: FinishedOrderLog[];
 };
@@ -21,6 +23,7 @@ const supabaseStoreTable = "mava_admin_store";
 const supabaseStoreId = "main";
 
 const defaultStore: AdminStore = {
+  stockQuantities: {},
   unavailableProductIds: [],
   orders: [],
 };
@@ -55,12 +58,20 @@ function getRemoteStoreConfig() {
 
 function normalizeStore(value: unknown): AdminStore {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return defaultStore;
+    return { ...defaultStore };
   }
 
   const parsed = value as Partial<AdminStore>;
 
   return {
+    stockQuantities:
+      parsed.stockQuantities && typeof parsed.stockQuantities === "object"
+        ? Object.fromEntries(
+            Object.entries(parsed.stockQuantities).filter(
+              ([, quantity]) => Number.isSafeInteger(quantity) && quantity >= 0,
+            ),
+          )
+        : {},
     unavailableProductIds: Array.isArray(parsed.unavailableProductIds)
       ? parsed.unavailableProductIds.filter(
           (id): id is string => typeof id === "string",
@@ -71,16 +82,19 @@ function normalizeStore(value: unknown): AdminStore {
 }
 
 type SupabaseStoreRow = {
+  updated_at?: string;
+  stock_quantities?: unknown;
   unavailable_product_ids?: unknown;
   orders?: unknown;
 };
 
 function normalizeSupabaseStore(row: SupabaseStoreRow | null): AdminStore {
   if (!row) {
-    return defaultStore;
+    return { ...defaultStore };
   }
 
   return normalizeStore({
+    stockQuantities: row.stock_quantities,
     orders: row.orders,
     unavailableProductIds: row.unavailable_product_ids,
   });
@@ -134,26 +148,37 @@ async function fetchSupabase(pathname: string, init: RequestInit = {}) {
 
 async function readRemoteStore(): Promise<AdminStore> {
   const response = await fetchSupabase(
-    `${supabaseStoreTable}?id=eq.${supabaseStoreId}&select=unavailable_product_ids,orders&limit=1`,
+    `${supabaseStoreTable}?id=eq.${supabaseStoreId}&select=*&limit=1`,
   );
   const rows = (await response.json()) as SupabaseStoreRow[];
 
-  return normalizeSupabaseStore(rows[0] ?? null);
+  return {
+    ...normalizeSupabaseStore(rows[0] ?? null),
+    remoteUpdatedAt: rows[0]?.updated_at ?? null,
+  };
 }
 
 async function writeRemoteStore(store: AdminStore) {
-  await fetchSupabase(supabaseStoreTable, {
+  const version = store.remoteUpdatedAt;
+  const pathname = version
+    ? `${supabaseStoreTable}?id=eq.${supabaseStoreId}&updated_at=eq.${encodeURIComponent(version)}`
+    : supabaseStoreTable;
+  const updatedAt = new Date(Math.max(Date.now(), version ? Date.parse(version) + 1 : 0)).toISOString();
+  const response = await fetchSupabase(pathname, {
     body: JSON.stringify({
       id: supabaseStoreId,
+      stock_quantities: store.stockQuantities,
       orders: store.orders,
       unavailable_product_ids: store.unavailableProductIds,
-      updated_at: new Date().toISOString(),
+      updated_at: updatedAt,
     }),
     headers: {
-      Prefer: "resolution=merge-duplicates",
+      Prefer: "resolution=ignore-duplicates,return=representation",
     },
-    method: "POST",
+    method: version ? "PATCH" : "POST",
   });
+  const rows = (await response.json()) as SupabaseStoreRow[];
+  return rows.length > 0;
 }
 
 async function readStore(): Promise<AdminStore> {
@@ -165,14 +190,13 @@ async function readStore(): Promise<AdminStore> {
     const value = await readFile(storePath, "utf8");
     return normalizeStore(JSON.parse(value));
   } catch {
-    return defaultStore;
+    return { ...defaultStore };
   }
 }
 
 async function writeStore(store: AdminStore) {
   if (getRemoteStoreConfig()) {
-    await writeRemoteStore(store);
-    return;
+    return writeRemoteStore(store);
   }
 
   if (process.env.VERCEL) {
@@ -183,6 +207,23 @@ async function writeStore(store: AdminStore) {
 
   await mkdir(path.dirname(storePath), { recursive: true });
   await writeFile(storePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+  return true;
+}
+
+let stockWriteQueue: Promise<unknown> = Promise.resolve();
+
+function updateStore(change: (store: AdminStore) => void): Promise<AdminStore> {
+  const operation = stockWriteQueue.then(async () => {
+    // Retry against the latest row if another admin saved at the same time.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const store = await readStore();
+      change(store);
+      if (await writeStore(store)) return store;
+    }
+    throw new AdminStoreUnavailableError("El stock cambio mientras guardabas. Volve a intentar.");
+  });
+  stockWriteQueue = operation.catch(() => undefined);
+  return operation;
 }
 
 export async function getUnavailableProductIds() {
@@ -191,31 +232,48 @@ export async function getUnavailableProductIds() {
   return store.unavailableProductIds;
 }
 
+export async function getStockState() {
+  const store = await readStore();
+  return {
+    stockQuantities: store.stockQuantities,
+    unavailableProductIds: store.unavailableProductIds,
+    deductedOrderIds: store.orders.map((order) => order.id),
+  };
+}
+
+function getStockQuantity(store: AdminStore, productId: string) {
+  return store.stockQuantities[productId] ??
+    (store.unavailableProductIds.includes(productId) ? 0 : 1);
+}
+
+function updateStockQuantity(store: AdminStore, productId: string, quantity: number) {
+  store.stockQuantities = { ...store.stockQuantities, [productId]: quantity };
+  const unavailableSet = new Set(store.unavailableProductIds);
+  if (quantity === 0) {
+    unavailableSet.add(productId);
+  } else {
+    unavailableSet.delete(productId);
+  }
+  store.unavailableProductIds = Array.from(unavailableSet).sort();
+}
+
+export async function setProductStockQuantity(productId: string, quantity: number) {
+  if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > 9999) {
+    throw new Error("La cantidad debe ser un entero entre 0 y 9999.");
+  }
+  await updateStore((store) => updateStockQuantity(store, productId, quantity));
+}
+
 export async function setProductsAvailability(
   productIds: string[],
   available: boolean,
 ) {
-  const store = await readStore();
-  const productIdSet = new Set(productIds);
-  const unavailableSet = new Set(store.unavailableProductIds);
-
-  for (const productId of productIdSet) {
-    if (available) {
-      unavailableSet.delete(productId);
-    } else {
-      unavailableSet.add(productId);
+  const store = await updateStore((store) => {
+    for (const productId of new Set(productIds)) {
+      updateStockQuantity(store, productId, available ? Math.max(1, getStockQuantity(store, productId)) : 0);
     }
-  }
-
-  const nextUnavailableProductIds = Array.from(unavailableSet).sort();
-  const nextStore = {
-    ...store,
-    unavailableProductIds: nextUnavailableProductIds,
-  };
-
-  await writeStore(nextStore);
-
-  return nextUnavailableProductIds;
+  });
+  return store.unavailableProductIds;
 }
 
 export async function getFinishedOrders() {
@@ -226,23 +284,19 @@ export async function getFinishedOrders() {
 
 export async function createFinishedOrder(
   order: Omit<FinishedOrderLog, "id" | "createdAt">,
+  orderId?: string,
 ) {
-  const store = await readStore();
   const nextOrder: FinishedOrderLog = {
     ...order,
-    id: crypto.randomUUID(),
+    id: orderId ?? crypto.randomUUID(),
     createdAt: new Date().toISOString(),
   };
-  const unavailableProductIds = Array.from(
-    new Set([...store.unavailableProductIds, ...order.productIds]),
-  ).sort();
-  const nextStore = {
-    unavailableProductIds,
-    orders: [nextOrder, ...store.orders],
-  };
-
-  await writeStore(nextStore);
-
-  return nextStore;
+  return updateStore((store) => {
+    if (orderId && store.orders.some((entry) => entry.id === orderId)) return;
+    for (const productId of new Set(order.productIds)) {
+      updateStockQuantity(store, productId, Math.max(0, getStockQuantity(store, productId) - 1));
+    }
+    store.orders = [nextOrder, ...store.orders];
+  });
 }
 

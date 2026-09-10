@@ -51,6 +51,7 @@ function TemporarySelectionShareView() {
   const { createFinishedOrder, unavailableProductIds } = useLocalStock();
   const catalogProducts = useCatalogProducts();
   const [finishingOrder, setFinishingOrder] = useState(false);
+  const [finishedSelection, setFinishedSelection] = useState("");
   const [finishError, setFinishError] = useState("");
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
   const checklistParams = createSelectionSearchParams(ids, selectedPriceIds);
@@ -83,12 +84,13 @@ function TemporarySelectionShareView() {
     },
   ).length;
   const finishedOrder =
-    selectedProducts.length > 0 &&
-    selectedProducts.every((product) => !product.available);
+    finishedSelection === checklistParams.toString() ||
+    (selectedProducts.length > 0 &&
+    selectedProducts.every((product) => !product.available));
 
   async function finishOrder() {
     const confirmed = window.confirm(
-      "Vas a marcar estos cuadros como sin stock. Queres continuar?",
+      "Vas a descontar una unidad de cada cuadro. Queres continuar?",
     );
 
     if (confirmed) {
@@ -103,6 +105,7 @@ function TemporarySelectionShareView() {
           sharePath: `/compartir?${checklistParams.toString()}`,
           totalInThousands: totalPrice,
         });
+        setFinishedSelection(checklistParams.toString());
       } catch (error) {
         setFinishError(
           error instanceof Error ? error.message : "No se pudo terminar pedido",

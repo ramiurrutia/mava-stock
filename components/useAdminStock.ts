@@ -27,6 +27,8 @@ type OrderResponse = {
 
 type StockResponse = {
   error?: string;
+  stockQuantities?: Record<string, number>;
+  deductedOrderIds?: string[];
   unavailableProductIds?: string[];
 };
 
@@ -44,16 +46,19 @@ function normalizeIds(ids?: string[]) {
     : [];
 }
 
-async function fetchStock() {
-  const response = await fetch("/api/stock", { cache: "no-store" });
+async function fetchStock(admin: boolean) {
+  const response = await fetch(admin ? "/api/admin/stock" : "/api/stock", {
+    cache: "no-store",
+    headers: admin ? getAdminAuthHeaders() : undefined,
+  });
 
   if (!response.ok) {
-    return [];
+    throw new Error(await getApiErrorMessage(response, "No se pudo cargar el stock"));
   }
 
   const data = (await response.json()) as StockResponse;
 
-  return normalizeIds(data.unavailableProductIds);
+  return data;
 }
 
 function getStoredAdminKey() {
@@ -295,22 +300,75 @@ export function useAdminMode() {
   return { checkingAdmin, isAdmin, loginAdmin, logoutAdmin };
 }
 
-export function useLocalStock() {
+export function useLocalStock({ admin = false }: { admin?: boolean } = {}) {
+  const [stockQuantities, setStockQuantities] = useState<Record<string, number>>({});
+  const [deductedOrderIds, setDeductedOrderIds] = useState<string[]>([]);
+  const [stockLoading, setStockLoading] = useState(true);
+  const [stockError, setStockError] = useState("");
   const [unavailableProductIds, setUnavailableProductIds] = useState<string[]>(
     [],
   );
 
   useEffect(() => {
+    let active = true;
+    let refreshId = 0;
     async function refreshUnavailableProductIds() {
-      setUnavailableProductIds(await fetchStock());
+      const id = ++refreshId;
+      setStockLoading(true);
+      try {
+        const data = await fetchStock(admin);
+        if (!active || id !== refreshId) return;
+        setUnavailableProductIds(normalizeIds(data.unavailableProductIds));
+        setStockQuantities(data.stockQuantities ?? {});
+        setDeductedOrderIds(normalizeIds(data.deductedOrderIds));
+        setStockError("");
+      } catch (error) {
+        if (active && id === refreshId) {
+          setStockError(error instanceof Error ? error.message : "No se pudo cargar el stock");
+        }
+      } finally {
+        if (active && id === refreshId) setStockLoading(false);
+      }
     }
 
     refreshUnavailableProductIds();
     window.addEventListener(stockChangeEvent, refreshUnavailableProductIds);
 
     return () => {
+      active = false;
       window.removeEventListener(stockChangeEvent, refreshUnavailableProductIds);
     };
+  }, [admin]);
+
+  const setProductStockQuantity = useCallback(async (productId: string, quantity: number) => {
+    const response = await fetch("/api/admin/stock", {
+      method: "PATCH",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ productId, quantity }),
+    });
+    if (!response.ok) {
+      throw new Error(await getApiErrorMessage(response, "No se pudo guardar la cantidad"));
+    }
+    const data = (await response.json()) as StockResponse;
+    setStockQuantities(data.stockQuantities ?? {});
+    setUnavailableProductIds(normalizeIds(data.unavailableProductIds));
+    window.dispatchEvent(new Event(stockChangeEvent));
+  }, []);
+
+  const deductOrderStock = useCallback(async (orderId: string) => {
+    const response = await fetch("/api/admin/orders", {
+      method: "POST",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ orderId }),
+    });
+    if (!response.ok) {
+      throw new Error(await getApiErrorMessage(response, "No se pudo descontar el stock"));
+    }
+    const data = (await response.json()) as StockResponse;
+    setStockQuantities(data.stockQuantities ?? {});
+    setUnavailableProductIds(normalizeIds(data.unavailableProductIds));
+    setDeductedOrderIds((current) => [...new Set([...current, orderId])]);
+    window.dispatchEvent(new Event(stockChangeEvent));
   }, []);
 
   const unavailableProductIdSet = useMemo(
@@ -336,6 +394,7 @@ export function useLocalStock() {
       const nextIds = normalizeIds(data.unavailableProductIds);
 
       setUnavailableProductIds(nextIds);
+      setStockQuantities(data.stockQuantities ?? {});
       window.dispatchEvent(new Event(stockChangeEvent));
 
       return nextIds;
@@ -387,6 +446,12 @@ export function useLocalStock() {
 
   return {
     createFinishedOrder,
+    deductOrderStock,
+    deductedOrderIds,
+    setProductStockQuantity,
+    stockQuantities,
+    stockLoading,
+    stockError,
     unavailableProductIds,
     unavailableProductIdSet,
     markProductsAvailable,

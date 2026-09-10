@@ -5,6 +5,7 @@ import {
 } from "@/lib/adminStore";
 import {
   deleteCustomerOrder,
+  getCustomerOrderById,
   getCustomerOrders,
   isCustomerOrdersUnavailableError,
   updateCustomerOrderStatus,
@@ -39,12 +40,34 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json().catch(() => null)) as {
+    orderId?: unknown;
     productIds?: unknown;
     productCodes?: unknown;
     selectedPriceIds?: unknown;
     totalInThousands?: unknown;
     sharePath?: unknown;
   } | null;
+  if (typeof body?.orderId === "string") {
+    try {
+      const order = await getCustomerOrderById(body.orderId);
+      if (!order) {
+        return Response.json({ error: "Pedido no encontrado" }, { status: 404 });
+      }
+      const store = await createFinishedOrder({
+        productIds: order.items.map((item) => item.id),
+        productCodes: order.items.map((item) => item.code),
+        selectedPriceIds: Object.fromEntries(order.items.map((item) => [item.id, item.background])),
+        sharePath: `/compartir?pedido=${order.id}`,
+        totalInThousands: order.total / 1000,
+      }, order.id);
+      return Response.json({
+        stockQuantities: store.stockQuantities,
+        unavailableProductIds: store.unavailableProductIds,
+      });
+    } catch (error) {
+      return Response.json({ error: error instanceof Error ? error.message : "No se pudo descontar el stock" }, { status: 503 });
+    }
+  }
   const productIds = Array.isArray(body?.productIds)
     ? body.productIds.filter((id): id is string => typeof id === "string")
     : [];
