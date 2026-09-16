@@ -137,19 +137,6 @@ const priceOptionsByMeasureCode: Record<
   ],
 };
 
-const retailPricesByMeasureCode: Record<
-  ProductMeasureCode,
-  number | { blanco: number; arpillera: number }
-> = {
-  XG: { blanco: 258, arpillera: 284 },
-  XGM: { blanco: 258, arpillera: 284 },
-  DNG: { blanco: 175, arpillera: 180 },
-  TC: { blanco: 90, arpillera: 94 },
-  TEXTURADO: 330,
-  SG: 590,
-  SGF: 480,
-};
-
 export function parsePriceList(value: unknown): PriceList {
   return value === "minorista" ? "minorista" : "mayorista";
 }
@@ -163,22 +150,15 @@ export function applyProductPriceList(product: Product, priceList: PriceList): P
     return product;
   }
 
-  const retailPrice = retailPricesByMeasureCode[product.measureCode];
-  const options = typeof retailPrice === "number"
-    ? getProductPriceOptions(product)
-    : priceOptions;
-
   return {
     ...product,
-    priceOptions: options.map((option) => {
-      const amountInThousands = typeof retailPrice === "number"
-        ? retailPrice
-        : retailPrice[option.id === "arpillera" ? "arpillera" : "blanco"];
+    priceOptions: getProductPriceOptions(product).map((option) => {
+      const amountInThousands = option.amountInThousands * 2;
 
       return {
         ...option,
         amountInThousands,
-        price: `$${amountInThousands} mil`,
+        price: `$${amountInThousands.toLocaleString("es-AR")} mil`,
       };
     }),
   };

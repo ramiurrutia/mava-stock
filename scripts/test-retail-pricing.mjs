@@ -33,13 +33,13 @@ const pricing = loadModule("data/products.ts", {
 const orders = loadModule("data/orders.ts");
 const retailProducts = pricing.products.map((product) => pricing.applyProductPriceList(product, "minorista"));
 
-test("all seven measures have the supplied retail prices, including both TC finishes", () => {
+test("all seven measures use twice the wholesale prices and preserve their finishes", () => {
   const expected = {
     XG: { blanco: 258, arpillera: 284 },
     XGM: { blanco: 258, arpillera: 284 },
-    DNG: { blanco: 175, arpillera: 180 },
-    TC: { blanco: 90, arpillera: 94 },
-    TEXTURADO: { base: 330 }, SG: { base: 590 }, SGF: { base: 480 },
+    DNG: { blanco: 174, arpillera: 190 },
+    TC: { base: 90 },
+    TEXTURADO: { base: 330 }, SG: { base: 640 }, SGF: { base: 498 },
   };
   assert.deepEqual(Array.from(pricing.productFolders.flatMap((folder) => folder.measures.map((measure) => measure.code))).sort(), measures.toSorted());
   for (const product of retailProducts) {
@@ -47,7 +47,7 @@ test("all seven measures have the supplied retail prices, including both TC fini
     assert.deepEqual(Object.fromEntries(options.map((option) => [option.id, option.amountInThousands])), expected[product.measureCode]);
     for (const option of options) assert.equal(option.price, `$${expected[product.measureCode][option.id]} mil`);
   }
-  assert.equal(pricing.getProductDefaultPriceId(retailProducts.find((product) => product.measureCode === "TC")), "blanco");
+  assert.equal(pricing.getProductDefaultPriceId(retailProducts.find((product) => product.measureCode === "TC")), "base");
 });
 
 test("retail pricing never mutates the cached wholesale catalog or custom admin prices", () => {
@@ -61,20 +61,28 @@ test("retail pricing never mutates the cached wholesale catalog or custom admin 
   assert.equal(pricing.findPriceOption(tc, "base").amountInThousands, 45);
   const custom = { ...tc, dynamic: true, priceOptions: [{ id: "base", amountInThousands: 50, price: "$50 mil" }] };
   assert.equal(pricing.findPriceOption(pricing.applyProductPriceList(custom, "mayorista"), "base").amountInThousands, 50);
-  assert.equal(pricing.findPriceOption(pricing.applyProductPriceList(custom, "minorista"), "arpillera").amountInThousands, 94);
+  assert.equal(pricing.findPriceOption(pricing.applyProductPriceList(custom, "minorista"), "base").amountInThousands, 100);
+  assert.equal(pricing.findPriceOption(pricing.applyProductPriceList(custom, "minorista"), "arpillera"), undefined);
 });
 
-test("equal-price sizes keep the same retail amount for every available finish", () => {
-  for (const [measureCode, expected] of [["SG", 590], ["SGF", 480], ["TEXTURADO", 330]]) {
-    const product = { ...pricing.products.find((item) => item.measureCode === measureCode), priceOptions: pricing.priceOptions };
+test("custom finish prices from admin are doubled independently, including 135 to 270", () => {
+  for (const measureCode of measures) {
+    const product = {
+      ...pricing.products.find((item) => item.measureCode === measureCode),
+      priceOptions: pricing.priceOptions.map((option) => ({
+        ...option, amountInThousands: option.id === "arpillera" ? 135 : 100,
+      })),
+    };
     const retail = pricing.applyProductPriceList(product, "minorista");
-    for (const option of pricing.getProductPriceOptions(retail)) assert.equal(option.amountInThousands, expected);
+    assert.equal(pricing.findPriceOption(retail, "blanco").amountInThousands, 200);
+    assert.equal(pricing.findPriceOption(retail, "arpillera").amountInThousands, 270);
+    assert.equal(pricing.findPriceOption(retail, "arpillera").price, "$270 mil");
   }
 });
 
 test("selection URLs, totals and empty selections retain the retail list", () => {
   const ids = ["xg-001", "tc-001"];
-  const selected = { "xg-001": "arpillera", "tc-001": "blanco" };
+  const selected = { "xg-001": "arpillera", "tc-001": "base" };
   const params = pricing.createSelectionSearchParams(ids, selected, "minorista");
   assert.equal(params.get("lista"), "minorista");
   const parsed = pricing.parseSelectionParams(params);
@@ -115,7 +123,7 @@ test("order API calculates retail prices on the server and persists the original
   const { api, customerOrders, rows } = apiHarness();
   const response = await api.POST(request({
     priceList: "minorista", productIds: ["xg-001", "tc-001"],
-    selectedPriceIds: { "xg-001": "arpillera", "tc-001": "blanco" },
+    selectedPriceIds: { "xg-001": "arpillera", "tc-001": "base" },
     total: 1, price: 1,
   }));
   assert.equal(response.status, 201);
@@ -136,7 +144,7 @@ test("legacy wholesale orders keep their prices and invalid retail options are r
   assert.equal(orders.getOrderPriceList({ items: [{ price: 45000 }] }), "mayorista");
   for (const body of [
     { priceList: "invalid", productIds: ["tc-001"], selectedPriceIds: { "tc-001": "base" } },
-    { priceList: "minorista", productIds: ["tc-001"], selectedPriceIds: { "tc-001": "base" } },
+    { priceList: "minorista", productIds: ["tc-001"], selectedPriceIds: { "tc-001": "arpillera" } },
     { priceList: "minorista", productIds: ["tc-001"], selectedPriceIds: {} },
   ]) assert.equal((await api.POST(request(body))).status, 400);
   assert.equal(rows.length, 1);

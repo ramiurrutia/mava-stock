@@ -403,6 +403,16 @@ export function CatalogClient({
               <p className="text-sm font-semibold uppercase text-neutral-600">
                 {priceList === "minorista" ? "Catálogo minorista" : "Catálogo mayorista"}
               </p>
+              {priceList === "minorista" ? (
+                <div className="mt-2 space-y-1 text-sm">
+                  <p className="font-semibold text-neutral-950">
+                    3 cuotas sin interés
+                  </p>
+                  <p className="font-medium text-[#7E5E35]">
+                    10% de descuento con transferencia
+                  </p>
+                </div>
+              ) : null}
               <p className="mt-2 text-base font-semibold text-[#7E5E35]">
                 {activeFolder
                   ? "Clickea las imagenes para realizar tu pedido"
