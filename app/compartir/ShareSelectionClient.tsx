@@ -10,13 +10,16 @@ import {
   useAdminMode,
   useLocalStock,
 } from "@/components/useAdminStock";
-import { orderStatusLabels, type CustomerOrder } from "@/data/orders";
+import { getOrderPriceList, orderStatusLabels, type CustomerOrder } from "@/data/orders";
 import {
+  applyProductPriceList,
   createSelectionSearchParams,
+  getCatalogPath,
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
   parseSelectionParams,
+  parsePriceList,
   type PriceOptionId,
   type Product,
 } from "@/data/products";
@@ -47,6 +50,7 @@ export function ShareSelectionClient({
 
 function TemporarySelectionShareView() {
   const searchParams = useSearchParams();
+  const priceList = parsePriceList(searchParams.get("lista"));
   const { isAdmin } = useAdminMode();
   const { createFinishedOrder, unavailableProductIds } = useLocalStock();
   const catalogProducts = useCatalogProducts();
@@ -54,10 +58,10 @@ function TemporarySelectionShareView() {
   const [finishedSelection, setFinishedSelection] = useState("");
   const [finishError, setFinishError] = useState("");
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
-  const checklistParams = createSelectionSearchParams(ids, selectedPriceIds);
+  const checklistParams = createSelectionSearchParams(ids, selectedPriceIds, priceList);
 
   const productsWithLocalStock = applyLocalStock(
-    catalogProducts,
+    catalogProducts.map((product) => applyProductPriceList(product, priceList)),
     unavailableProductIds,
   );
   const selectedProducts = productsWithLocalStock.filter((product) =>
@@ -122,7 +126,7 @@ function TemporarySelectionShareView() {
         <header className="mb-6 flex flex-col justify-between gap-4 border-b border-neutral-300 pb-5 sm:flex-row sm:items-start">
           <div>
             <p className="text-xs font-semibold uppercase text-neutral-500">
-              Seleccion visual
+              Seleccion visual {priceList}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               Cuadros solicitados
@@ -157,7 +161,7 @@ function TemporarySelectionShareView() {
               </Link>
             ) : null}
             <Link
-              href="/"
+              href={getCatalogPath(priceList)}
               className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950"
             >
               Catalogo
@@ -303,6 +307,7 @@ function SavedOrderShareView({
   orderError,
   orderId,
 }: SavedOrderShareViewProps) {
+  const priceList = getOrderPriceList(order);
   const { isAdmin } = useAdminMode();
   const catalogProducts = useCatalogProducts();
   const planillaHref = order
@@ -316,7 +321,7 @@ function SavedOrderShareView({
         <header className="mb-6 flex flex-col justify-between gap-4 border-b border-neutral-300 pb-5 sm:flex-row sm:items-start">
           <div>
             <p className="text-xs font-semibold uppercase text-neutral-500">
-              Pedido guardado
+              Pedido {priceList}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               Cuadros solicitados
@@ -346,7 +351,7 @@ function SavedOrderShareView({
               </Link>
             ) : null}
             <Link
-              href="/"
+              href={getCatalogPath(priceList)}
               className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950"
             >
               Catalogo

@@ -41,6 +41,7 @@ import {
 import {
   orderStatuses,
   orderStatusLabels,
+  getOrderPriceList,
   type CustomerOrder,
   type OrderStatus,
 } from "@/data/orders";
@@ -2084,6 +2085,7 @@ function AdminOrderCard({
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-neutral-500">
             #{getShortOrderId(order.id)} - {formatOrderDate(order.createdAt)}
+            {getOrderPriceList(order) === "minorista" ? " - Minorista" : ""}
           </p>
           <h3 className="mt-1 truncate text-base font-semibold">
             {order.customerName || "Sin nombre"}

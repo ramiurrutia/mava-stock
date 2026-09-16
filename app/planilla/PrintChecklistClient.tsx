@@ -11,10 +11,13 @@ import {
 } from "@/components/useAdminStock";
 import type { CustomerOrder } from "@/data/orders";
 import {
+  applyProductPriceList,
   createSelectionSearchParams,
+  getCatalogPath,
   findPriceOption,
   formatPriceTotal,
   parseSelectionParams,
+  parsePriceList,
   type PriceOptionId,
   type Product,
 } from "@/data/products";
@@ -48,14 +51,15 @@ export function PrintChecklistClient({
 
 function TemporarySelectionChecklist() {
   const searchParams = useSearchParams();
+  const priceList = parsePriceList(searchParams.get("lista"));
   const { isAdmin } = useAdminMode();
   const { unavailableProductIds } = useLocalStock();
   const catalogProducts = useCatalogProducts();
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
-  const shareParams = createSelectionSearchParams(ids, selectedPriceIds);
+  const shareParams = createSelectionSearchParams(ids, selectedPriceIds, priceList);
 
   const productsWithLocalStock = applyLocalStock(
-    catalogProducts,
+    catalogProducts.map((product) => applyProductPriceList(product, priceList)),
     unavailableProductIds,
   );
   const selectedProducts = productsWithLocalStock.filter((product) =>
@@ -69,7 +73,7 @@ function TemporarySelectionChecklist() {
 
   return (
     <ChecklistShell
-      backHref={ids.length > 0 ? `/compartir?${shareParams.toString()}` : "/"}
+      backHref={ids.length > 0 ? `/compartir?${shareParams.toString()}` : getCatalogPath(priceList)}
       backLabel="Volver"
       canPrint={isAdmin}
       onPrint={printPage}

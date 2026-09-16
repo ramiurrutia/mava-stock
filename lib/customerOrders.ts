@@ -1,3 +1,4 @@
+import { parsePriceList } from "@/data/products";
 import {
   isOrderStatus,
   type CustomerOrder,
@@ -114,7 +115,7 @@ function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
   }
 
   return value
-    .map((item) => {
+    .map((item): OrderItemSnapshot | null => {
       if (!item || typeof item !== "object" || Array.isArray(item)) {
         return null;
       }
@@ -128,6 +129,7 @@ function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
         id: readString(parsed.id),
         name: readString(parsed.name),
         price: readNumber(parsed.price),
+        priceList: parsePriceList(parsed.priceList),
         size: readString(parsed.size),
       };
     })

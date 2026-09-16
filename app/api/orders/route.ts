@@ -4,7 +4,9 @@ import {
 } from "@/lib/customerOrders";
 import { getCatalogProducts } from "@/lib/catalogProducts";
 import {
+  applyProductPriceList,
   findPriceOption,
+  parsePriceList,
   products as staticProducts,
   type PriceOptionId,
   type Product,
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
     businessName?: unknown;
     customerName?: unknown;
     productIds?: unknown;
+    priceList?: unknown;
     selectedPriceIds?: unknown;
     whatsapp?: unknown;
   } | null;
@@ -63,6 +66,15 @@ export async function POST(request: Request) {
   const businessName = readString(body?.businessName);
   const productIds = parseProductIds(body?.productIds);
   const selectedPriceIds = parseSelectedPriceIds(body?.selectedPriceIds);
+  const priceList = parsePriceList(body?.priceList);
+
+  if (
+    body?.priceList !== undefined &&
+    body.priceList !== "mayorista" &&
+    body.priceList !== "minorista"
+  ) {
+    return Response.json({ error: "Lista de precios invalida." }, { status: 400 });
+  }
 
   if (!customerName || !whatsapp) {
     return Response.json(
@@ -91,7 +103,8 @@ export async function POST(request: Request) {
   );
   const selectedProducts = productIds
     .map((productId) => productsById.get(productId))
-    .filter((product): product is Product => Boolean(product));
+    .filter((product): product is Product => Boolean(product))
+    .map((product) => applyProductPriceList(product, priceList));
 
   if (selectedProducts.length !== productIds.length) {
     return Response.json(
@@ -123,6 +136,7 @@ export async function POST(request: Request) {
       id: product.id,
       name: product.name,
       price: (price?.amountInThousands ?? 0) * 1000,
+      priceList,
       size: product.size,
     };
   });

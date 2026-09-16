@@ -1,6 +1,13 @@
 import Link from "next/link";
+import { getCatalogPath, parsePriceList } from "@/data/products";
 
-export default function ThanksPage() {
+export default async function ThanksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lista?: string | string[] }>;
+}) {
+  const { lista } = await searchParams;
+  const priceList = parsePriceList(lista);
   return (
     <main className="grid min-h-screen place-items-center bg-[#f7f4ef] px-4 py-12 text-neutral-950">
       <section className="w-full max-w-xl border border-[#eadfd4] bg-white px-6 py-12 text-center shadow-sm">
@@ -15,7 +22,7 @@ export default function ThanksPage() {
           para verlo desde el panel admin.
         </p>
         <Link
-          href="/"
+          href={getCatalogPath(priceList)}
           className="mt-8 inline-flex h-11 items-center bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
         >
           Volver al catalogo

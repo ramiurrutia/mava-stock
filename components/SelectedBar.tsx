@@ -5,10 +5,12 @@ import {
   getProductPriceOptions,
   getSelectedPriceTotal,
   type Product,
+  type PriceList,
   type SelectedPriceIds,
 } from "@/data/products";
 
 type SelectedBarProps = {
+  priceList?: PriceList;
   products: Product[];
   selectedIds: string[];
   selectedPriceIds: SelectedPriceIds;
@@ -16,6 +18,7 @@ type SelectedBarProps = {
 };
 
 export function SelectedBar({
+  priceList = "mayorista",
   products,
   selectedIds,
   selectedPriceIds,
@@ -42,6 +45,7 @@ export function SelectedBar({
   const selectionParams = createSelectionSearchParams(
     selectedIds,
     selectedPriceIds,
+    priceList,
   );
 
   return (
@@ -73,13 +77,13 @@ export function SelectedBar({
             </div>
           </div>
 
-            <button
-              type="button"
-              onClick={onClear}
-              className="shrink-0 text-xs font-semibold text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline"
-            >
-              Limpiar seleccion
-            </button>
+          <button
+            type="button"
+            onClick={onClear}
+            className="shrink-0 text-xs font-semibold text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline"
+          >
+            Limpiar seleccion
+          </button>
         </div>
 
         <Link

@@ -5,15 +5,18 @@ import { useState } from "react";
 import {
   createSelectionSearchParams,
   type Product,
+  type PriceList,
   type SelectedPriceIds,
 } from "@/data/products";
 
 type CheckoutFormProps = {
+  priceList?: PriceList;
   selectedProducts: Product[];
   selectedPriceIds: SelectedPriceIds;
 };
 
 export function CheckoutForm({
+  priceList = "mayorista",
   selectedProducts,
   selectedPriceIds,
 }: CheckoutFormProps) {
@@ -46,6 +49,7 @@ export function CheckoutForm({
     const selectionParams = createSelectionSearchParams(
       selectedIds,
       selectedPriceIds,
+      priceList,
     );
 
     const fallbackSelectionUrl = `${window.location.origin}/compartir?${selectionParams.toString()}`;
@@ -67,6 +71,7 @@ export function CheckoutForm({
           businessName: company,
           customerName: name,
           productIds: selectedIds,
+          priceList,
           selectedPriceIds,
           whatsapp,
         }),
@@ -93,6 +98,7 @@ export function CheckoutForm({
         : fallbackSelectionUrl;
       const message = [
         "Seleccione estos cuadros",
+        `Lista de precios: ${priceList}`,
         shortOrderId ? `Pedido: #${shortOrderId}` : null,
         "",
         `Codigos: ${selectedCodes}`,
@@ -111,7 +117,10 @@ export function CheckoutForm({
         : `https://wa.me/?text=${encodeURIComponent(message)}`;
 
       window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-      router.push(orderId ? `/gracias?pedido=${orderId}` : "/gracias");
+      const thanksParams = new URLSearchParams();
+      if (orderId) thanksParams.set("pedido", orderId);
+      if (priceList === "minorista") thanksParams.set("lista", priceList);
+      router.push(`/gracias?${thanksParams.toString()}`);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "No se pudo guardar el pedido.",

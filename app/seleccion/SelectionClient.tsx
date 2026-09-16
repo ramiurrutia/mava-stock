@@ -11,17 +11,21 @@ import {
   useLocalStock,
 } from "@/components/useAdminStock";
 import {
+  applyProductPriceList,
   createSelectionSearchParams,
+  getCatalogPath,
   formatPriceTotal,
   getProductPriceOptions,
   getSelectedPriceTotal,
   parseSelectionParams,
+  parsePriceList,
   type PriceOptionId,
   type Product,
 } from "@/data/products";
 
 export function SelectionClient() {
   const searchParams = useSearchParams();
+  const priceList = parsePriceList(searchParams.get("lista"));
   const router = useRouter();
   const [showCheckoutCta, setShowCheckoutCta] = useState(true);
   const { unavailableProductIds } = useLocalStock();
@@ -29,7 +33,7 @@ export function SelectionClient() {
   const { ids, selectedPriceIds } = parseSelectionParams(searchParams);
 
   const productsWithLocalStock = applyLocalStock(
-    catalogProducts,
+    catalogProducts.map((product) => applyProductPriceList(product, priceList)),
     unavailableProductIds,
   );
   const selectedProducts = productsWithLocalStock.filter((product) =>
@@ -79,13 +83,10 @@ export function SelectionClient() {
   }, [selectedProducts.length]);
 
   function buildSelectionUrl(nextIds: string[]) {
-    if (nextIds.length === 0) {
-      return "/seleccion";
-    }
-
     const nextParams = createSelectionSearchParams(
       nextIds,
       selectedPriceIds,
+      priceList,
     );
 
     return `/seleccion?${nextParams.toString()}`;
@@ -102,7 +103,7 @@ export function SelectionClient() {
     );
 
     if (confirmed) {
-      router.replace("/seleccion");
+      router.replace(buildSelectionUrl([]));
     }
   }
 
@@ -118,7 +119,7 @@ export function SelectionClient() {
         <header className="mb-6 flex items-start justify-between gap-4 border-b border-neutral-300 pb-5">
           <div>
             <p className="text-xs font-semibold uppercase text-neutral-500">
-              Mi seleccion
+              Mi seleccion {priceList}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               Revisar pedido
@@ -129,7 +130,7 @@ export function SelectionClient() {
           </div>
 
           <Link
-            href="/"
+            href={getCatalogPath(priceList)}
             className="border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950"
           >
             Catalogo
@@ -145,7 +146,7 @@ export function SelectionClient() {
               Volve al catalogo y toca los cuadros que queres consultar.
             </p>
             <Link
-              href="/"
+              href={getCatalogPath(priceList)}
               className="mt-6 inline-flex h-11 items-center bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
             >
               Ir al catalogo
@@ -200,6 +201,7 @@ export function SelectionClient() {
 
             <section id="checkout-form" className="scroll-mt-4 pb-20 sm:pb-0">
               <CheckoutForm
+                priceList={priceList}
                 selectedProducts={selectedProducts}
                 selectedPriceIds={selectedPriceIds}
               />

@@ -46,6 +46,7 @@ export type ProductThemeId =
   | "texturas"
   | "vehiculos";
 export type PriceOptionId = "blanco" | "arpillera" | "base";
+export type PriceList = "mayorista" | "minorista";
 export type SelectedPriceIds = Record<string, PriceOptionId | undefined>;
 type SelectionSearchParams = {
   get(name: string): string | null;
@@ -135,6 +136,53 @@ const priceOptionsByMeasureCode: Record<
     },
   ],
 };
+
+const retailPricesByMeasureCode: Record<
+  ProductMeasureCode,
+  number | { blanco: number; arpillera: number }
+> = {
+  XG: { blanco: 258, arpillera: 284 },
+  XGM: { blanco: 258, arpillera: 284 },
+  DNG: { blanco: 175, arpillera: 180 },
+  TC: { blanco: 90, arpillera: 94 },
+  TEXTURADO: 330,
+  SG: 590,
+  SGF: 480,
+};
+
+export function parsePriceList(value: unknown): PriceList {
+  return value === "minorista" ? "minorista" : "mayorista";
+}
+
+export function getCatalogPath(priceList: PriceList) {
+  return priceList === "minorista" ? "/minorista" : "/";
+}
+
+export function applyProductPriceList(product: Product, priceList: PriceList): Product {
+  if (priceList === "mayorista") {
+    return product;
+  }
+
+  const retailPrice = retailPricesByMeasureCode[product.measureCode];
+  const options = typeof retailPrice === "number"
+    ? getProductPriceOptions(product)
+    : priceOptions;
+
+  return {
+    ...product,
+    priceOptions: options.map((option) => {
+      const amountInThousands = typeof retailPrice === "number"
+        ? retailPrice
+        : retailPrice[option.id === "arpillera" ? "arpillera" : "blanco"];
+
+      return {
+        ...option,
+        amountInThousands,
+        price: `$${amountInThousands} mil`,
+      };
+    }),
+  };
+}
 
 export const productThemes = [
   {
@@ -394,6 +442,7 @@ export function serializeSelectionParams(
 export function createSelectionSearchParams(
   selectedIds: string[],
   selectedPriceIds: SelectedPriceIds,
+  priceList: PriceList = "mayorista",
 ) {
   const params = new URLSearchParams();
   const compactSelection = serializeSelectionParams(
@@ -403,6 +452,10 @@ export function createSelectionSearchParams(
 
   if (compactSelection) {
     params.set(compactSelectionParam, compactSelection);
+  }
+
+  if (priceList === "minorista") {
+    params.set("lista", priceList);
   }
 
   return params;

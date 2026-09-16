@@ -1,3 +1,5 @@
+import type { PriceList } from "@/data/products";
+
 export const orderStatuses = [
   {
     id: "nuevo",
@@ -24,6 +26,7 @@ export const orderStatuses = [
 export type OrderStatus = (typeof orderStatuses)[number]["id"];
 
 export type OrderItemSnapshot = {
+  priceList?: PriceList;
   id: string;
   code: string;
   name: string;
@@ -43,6 +46,12 @@ export type CustomerOrder = {
   total: number;
   createdAt: string;
 };
+
+export function getOrderPriceList(order: Pick<CustomerOrder, "items"> | null): PriceList {
+  return order?.items.some((item) => item.priceList === "minorista")
+    ? "minorista"
+    : "mayorista";
+}
 
 export const orderStatusLabels = Object.fromEntries(
   orderStatuses.map((status) => [status.id, status.label]),
