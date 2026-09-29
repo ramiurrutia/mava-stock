@@ -1,4 +1,5 @@
 import {
+  normalizeWholesalePriceOptions,
   products as staticProducts,
   withProductPairInfo,
   type PriceOptionId,
@@ -405,7 +406,7 @@ function normalizeCatalogProduct(row: CatalogProductRow): Product | null {
   const storagePath = readString(row.storage_path);
   const width = readNumber(row.width);
   const height = readNumber(row.height);
-  const priceOptions = normalizePriceOptions(row.price_options);
+  const priceOptions = normalizeWholesalePriceOptions(measureCode, normalizePriceOptions(row.price_options));
 
   if (
     !code ||
@@ -446,7 +447,7 @@ function createProductFromStorageEntry(
   const themeId = productThemeIds.has(rowThemeId)
     ? rowThemeId
     : staticProduct?.themeId ?? getDefaultThemeId(entry.measureCode);
-  const rowPriceOptions = normalizePriceOptions(row?.price_options);
+  const rowPriceOptions = normalizeWholesalePriceOptions(entry.measureCode, normalizePriceOptions(row?.price_options));
   const rowWidth = readNumber(row?.width);
   const rowHeight = readNumber(row?.height);
   const fallbackDimensions = fallbackImageDimensions[entry.measureCode];
@@ -577,7 +578,7 @@ export async function getCatalogProductByCode(code: string) {
     code: productCode,
     height,
     measureCode,
-    priceOptions: normalizePriceOptions(row?.price_options),
+    priceOptions: normalizeWholesalePriceOptions(measureCode, normalizePriceOptions(row?.price_options)),
     storagePath,
     themeId,
     width,

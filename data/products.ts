@@ -145,14 +145,37 @@ export function getCatalogPath(priceList: PriceList) {
   return priceList === "minorista" ? "/minorista" : "/";
 }
 
+export function normalizeWholesalePriceOptions(
+  measureCode: ProductMeasureCode,
+  options: readonly ProductPriceOption[],
+): ProductPriceOption[] {
+  const previousMeasure =
+    measureCode === "SG" ? "SGF" : measureCode === "SGF" ? "SG" : null;
+  if (!previousMeasure) return [...options];
+
+  const previousAmount = priceOptionsByMeasureCode[previousMeasure][0].amountInThousands;
+  const correctAmount = priceOptionsByMeasureCode[measureCode][0].amountInThousands;
+
+  // Moving SG/SGF used to retain the other measure's default price.
+  return options.map((option) =>
+    option.amountInThousands === previousAmount
+      ? { ...option, amountInThousands: correctAmount, price: `$${correctAmount} mil` }
+      : option,
+  );
+}
+
 export function applyProductPriceList(product: Product, priceList: PriceList): Product {
+  const originalOptions = getProductPriceOptions(product);
+  const options = normalizeWholesalePriceOptions(product.measureCode, originalOptions);
   if (priceList === "mayorista") {
-    return product;
+    return options.every((option, index) => option === originalOptions[index])
+      ? product
+      : { ...product, priceOptions: options };
   }
 
   return {
     ...product,
-    priceOptions: getProductPriceOptions(product).map((option) => {
+    priceOptions: options.map((option) => {
       const amountInThousands = option.amountInThousands * 2;
 
       return {

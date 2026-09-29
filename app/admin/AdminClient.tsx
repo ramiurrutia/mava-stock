@@ -1799,9 +1799,10 @@ function EditProductPanel({
     getProductPriceMode(product),
   );
   const defaultPrices = defaultPricesByMeasureCode[measureCode];
-  const basePrice = getProductPriceDefault(product, "base");
-  const blancoPrice = getProductPriceDefault(product, "blanco");
-  const arpilleraPrice = getProductPriceDefault(product, "arpillera");
+  const sameMeasure = measureCode === product.measureCode;
+  const basePrice = sameMeasure ? getProductPriceDefault(product, "base") : "";
+  const blancoPrice = sameMeasure ? getProductPriceDefault(product, "blanco") : "";
+  const arpilleraPrice = sameMeasure ? getProductPriceDefault(product, "arpillera") : "";
 
   return (
     <div

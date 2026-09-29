@@ -80,6 +80,21 @@ test("custom finish prices from admin are doubled independently, including 135 t
   }
 });
 
+test("SG and SGF swapped defaults are corrected before calculating either price list", () => {
+  for (const [measureCode, wrongAmount, correctAmount] of [["SG", 249, 320], ["SGF", 320, 249]]) {
+    const original = pricing.products.find((product) => product.measureCode === measureCode);
+    const product = { ...original, priceOptions: [{ ...pricing.getProductPriceOptions(original)[0], amountInThousands: wrongAmount, price: `$${wrongAmount} mil` }] };
+    for (const [list, multiplier] of [["mayorista", 1], ["minorista", 2]]) {
+      const result = pricing.applyProductPriceList(product, list);
+      assert.equal(pricing.findPriceOption(result, "base").amountInThousands, correctAmount * multiplier);
+      assert.equal(pricing.findPriceOption(result, "base").price, `$${correctAmount * multiplier} mil`);
+    }
+    assert.equal(product.priceOptions[0].amountInThousands, wrongAmount);
+    const corrected = pricing.normalizeWholesalePriceOptions(measureCode, product.priceOptions);
+    assert.equal(pricing.normalizeWholesalePriceOptions(measureCode, corrected)[0].amountInThousands, correctAmount);
+  }
+});
+
 test("selection URLs, totals and empty selections retain the retail list", () => {
   const ids = ["xg-001", "tc-001"];
   const selected = { "xg-001": "arpillera", "tc-001": "base" };
@@ -93,7 +108,7 @@ test("selection URLs, totals and empty selections retain the retail list", () =>
   assert.equal(pricing.getCatalogPath(pricing.parsePriceList(params.get("lista"))), "/minorista");
 });
 
-function apiHarness() {
+function apiHarness(catalog = pricing.products) {
   const rows = [];
   const customerOrders = loadModule("lib/customerOrders.ts", {
     "@/data/products": pricing, "@/data/orders": orders,
@@ -107,7 +122,7 @@ function apiHarness() {
   const api = loadModule("app/api/orders/route.ts", {
     "@/data/products": pricing,
     "@/lib/customerOrders": customerOrders,
-    "@/lib/catalogProducts": { getCatalogProducts: async () => pricing.products },
+    "@/lib/catalogProducts": { getCatalogProducts: async () => catalog },
   });
   return { api, customerOrders, rows };
 }
@@ -134,6 +149,22 @@ test("order API calculates retail prices on the server and persists the original
   const restored = await customerOrders.getCustomerOrderById(order.id);
   assert.equal(orders.getOrderPriceList(restored), "minorista");
   assert.equal(restored.total, 374000);
+});
+
+test("order API corrects swapped SG and SGF prices before saving individual item amounts", async () => {
+  const catalog = pricing.products.filter((product) => ["SG", "SGF"].includes(product.measureCode)).map((product) => ({
+    ...product,
+    priceOptions: [{ ...pricing.getProductPriceOptions(product)[0], amountInThousands: product.measureCode === "SG" ? 249 : 320 }],
+  }));
+  const { api } = apiHarness(catalog);
+  const response = await api.POST(request({
+    priceList: "minorista", productIds: ["sg-001", "sgf-001"],
+    selectedPriceIds: { "sg-001": "base", "sgf-001": "base" },
+  }));
+  assert.equal(response.status, 201);
+  const { order } = await response.json();
+  assert.equal(order.items.find((item) => item.id === "sg-001").price, 640000);
+  assert.equal(order.items.find((item) => item.id === "sgf-001").price, 498000);
 });
 
 test("legacy wholesale orders keep their prices and invalid retail options are rejected", async () => {
