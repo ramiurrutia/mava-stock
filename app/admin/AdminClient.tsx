@@ -101,9 +101,9 @@ const defaultPricesByMeasureCode: Record<
   }
 > = {
   DNG: {
-    arpillera: "95",
-    base: "87",
-    blanco: "87",
+    arpillera: "97",
+    base: "89",
+    blanco: "89",
   },
   SG: {
     arpillera: "320",
@@ -111,9 +111,9 @@ const defaultPricesByMeasureCode: Record<
     blanco: "320",
   },
   SGF: {
-    arpillera: "249",
-    base: "249",
-    blanco: "249",
+    arpillera: "250",
+    base: "250",
+    blanco: "250",
   },
   TC: {
     arpillera: "45",
@@ -126,14 +126,14 @@ const defaultPricesByMeasureCode: Record<
     blanco: "165",
   },
   XG: {
-    arpillera: "142",
-    base: "129",
-    blanco: "129",
+    arpillera: "145",
+    base: "135",
+    blanco: "135",
   },
   XGM: {
-    arpillera: "142",
-    base: "129",
-    blanco: "129",
+    arpillera: "145",
+    base: "135",
+    blanco: "135",
   },
 };
 

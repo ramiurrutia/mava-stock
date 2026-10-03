@@ -35,11 +35,11 @@ const retailProducts = pricing.products.map((product) => pricing.applyProductPri
 
 test("all seven measures use twice the wholesale prices and preserve their finishes", () => {
   const expected = {
-    XG: { blanco: 258, arpillera: 284 },
-    XGM: { blanco: 258, arpillera: 284 },
-    DNG: { blanco: 174, arpillera: 190 },
+    XG: { blanco: 270, arpillera: 290 },
+    XGM: { blanco: 270, arpillera: 290 },
+    DNG: { blanco: 178, arpillera: 194 },
     TC: { base: 90 },
-    TEXTURADO: { base: 330 }, SG: { base: 640 }, SGF: { base: 498 },
+    TEXTURADO: { base: 330 }, SG: { base: 640 }, SGF: { base: 500 },
   };
   assert.deepEqual(Array.from(pricing.productFolders.flatMap((folder) => folder.measures.map((measure) => measure.code))).sort(), measures.toSorted());
   for (const product of retailProducts) {
@@ -81,7 +81,7 @@ test("custom finish prices from admin are doubled independently, including 135 t
 });
 
 test("SG and SGF swapped defaults are corrected before calculating either price list", () => {
-  for (const [measureCode, wrongAmount, correctAmount] of [["SG", 249, 320], ["SGF", 320, 249]]) {
+  for (const [measureCode, wrongAmount, correctAmount] of [["SG", 249, 320], ["SG", 250, 320], ["SGF", 320, 250]]) {
     const original = pricing.products.find((product) => product.measureCode === measureCode);
     const product = { ...original, priceOptions: [{ ...pricing.getProductPriceOptions(original)[0], amountInThousands: wrongAmount, price: `$${wrongAmount} mil` }] };
     for (const [list, multiplier] of [["mayorista", 1], ["minorista", 2]]) {
@@ -95,14 +95,33 @@ test("SG and SGF swapped defaults are corrected before calculating either price 
   }
 });
 
+test("saved previous defaults are upgraded for both lists without changing custom amounts", () => {
+  for (const [measureCode, id, previous, current] of [
+    ["DNG", "base", 87, 89], ["DNG", "blanco", 87, 89], ["DNG", "arpillera", 95, 97],
+    ["XG", "base", 129, 135], ["XG", "blanco", 129, 135], ["XG", "arpillera", 142, 145],
+    ["SGF", "base", 249, 250], ["SGF", "arpillera", 249, 250],
+    ["XGM", "base", 129, 135], ["XGM", "blanco", 129, 135], ["XGM", "arpillera", 142, 145],
+    ["DNG", "arpillera", 110, 110], ["XG", "blanco", 150, 150],
+  ]) {
+    const product = { ...pricing.products.find((item) => item.measureCode === measureCode), priceOptions: [{ id, label: id, shortLabel: id, price: `$${previous} mil`, amountInThousands: previous }] };
+    for (const [list, factor] of [["mayorista", 1], ["minorista", 2]]) {
+      const result = pricing.applyProductPriceList(product, list);
+      assert.equal(pricing.findPriceOption(result, id).amountInThousands, current * factor);
+      assert.equal(pricing.findPriceOption(result, id).price, `$${current * factor} mil`);
+    }
+    const normalized = pricing.normalizeWholesalePriceOptions(measureCode, product.priceOptions);
+    assert.equal(pricing.normalizeWholesalePriceOptions(measureCode, normalized)[0].amountInThousands, current);
+  }
+});
+
 test("selection URLs, totals and empty selections retain the retail list", () => {
   const ids = ["xg-001", "tc-001"];
   const selected = { "xg-001": "arpillera", "tc-001": "base" };
   const params = pricing.createSelectionSearchParams(ids, selected, "minorista");
   assert.equal(params.get("lista"), "minorista");
   const parsed = pricing.parseSelectionParams(params);
-  assert.equal(pricing.getSelectedPriceTotal(parsed.ids, parsed.selectedPriceIds, retailProducts), 374);
-  assert.equal(pricing.formatPriceTotal(374), "$374.000");
+  assert.equal(pricing.getSelectedPriceTotal(parsed.ids, parsed.selectedPriceIds, retailProducts), 380);
+  assert.equal(pricing.formatPriceTotal(380), "$380.000");
   assert.equal(pricing.createSelectionSearchParams([], {}, "minorista").get("lista"), "minorista");
   assert.equal(pricing.createSelectionSearchParams(ids, selected).has("lista"), false);
   assert.equal(pricing.getCatalogPath(pricing.parsePriceList(params.get("lista"))), "/minorista");
@@ -143,12 +162,12 @@ test("order API calculates retail prices on the server and persists the original
   }));
   assert.equal(response.status, 201);
   const { order } = await response.json();
-  assert.equal(order.total, 374000);
-  assert.equal(rows[0].items[0].price, 284000);
+  assert.equal(order.total, 380000);
+  assert.equal(rows[0].items[0].price, 290000);
   assert.equal(rows[0].items[1].price, 90000);
   const restored = await customerOrders.getCustomerOrderById(order.id);
   assert.equal(orders.getOrderPriceList(restored), "minorista");
-  assert.equal(restored.total, 374000);
+  assert.equal(restored.total, 380000);
 });
 
 test("order API corrects swapped SG and SGF prices before saving individual item amounts", async () => {
@@ -164,7 +183,15 @@ test("order API corrects swapped SG and SGF prices before saving individual item
   assert.equal(response.status, 201);
   const { order } = await response.json();
   assert.equal(order.items.find((item) => item.id === "sg-001").price, 640000);
-  assert.equal(order.items.find((item) => item.id === "sgf-001").price, 498000);
+  assert.equal(order.items.find((item) => item.id === "sgf-001").price, 500000);
+});
+
+test("previously saved orders retain their original prices after the catalog price update", async () => {
+  const { customerOrders, rows } = apiHarness();
+  rows.push({ id: "old-order", total: 498000, items: [{ id: "sgf-001", code: "SGF-001", price: 498000, priceList: "minorista" }] });
+  const saved = await customerOrders.getCustomerOrderById("old-order");
+  assert.equal(saved.total, 498000);
+  assert.equal(saved.items[0].price, 498000);
 });
 
 test("legacy wholesale orders keep their prices and invalid retail options are rejected", async () => {

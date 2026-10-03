@@ -65,15 +65,15 @@ export const priceOptions = [
     id: "blanco",
     label: "Fondo blanco",
     shortLabel: "Blanco",
-    price: "$129 mil",
-    amountInThousands: 129,
+    price: "$135 mil",
+    amountInThousands: 135,
   },
   {
     id: "arpillera",
     label: "Fondo arpillera",
     shortLabel: "Arpillera",
-    price: "$142 mil",
-    amountInThousands: 142,
+    price: "$145 mil",
+    amountInThousands: 145,
   },
 ] as const satisfies readonly ProductPriceOption[];
 
@@ -88,15 +88,15 @@ const priceOptionsByMeasureCode: Record<
       id: "blanco",
       label: "Fondo blanco",
       shortLabel: "Blanco",
-      price: "$87 mil",
-      amountInThousands: 87,
+      price: "$89 mil",
+      amountInThousands: 89,
     },
     {
       id: "arpillera",
       label: "Fondo arpillera",
       shortLabel: "Arpillera",
-      price: "$95 mil",
-      amountInThousands: 95,
+      price: "$97 mil",
+      amountInThousands: 97,
     },
   ],
   TC: [
@@ -122,8 +122,8 @@ const priceOptionsByMeasureCode: Record<
       id: "base",
       label: "Precio",
       shortLabel: "Precio",
-      price: "$249 mil",
-      amountInThousands: 249,
+      price: "$250 mil",
+      amountInThousands: 250,
     },
   ],
   TEXTURADO: [
@@ -145,23 +145,30 @@ export function getCatalogPath(priceList: PriceList) {
   return priceList === "minorista" ? "/minorista" : "/";
 }
 
+const previousWholesaleAmounts: Partial<
+  Record<ProductMeasureCode, Partial<Record<PriceOptionId, readonly number[]>>>
+> = {
+  DNG: { base: [87], blanco: [87], arpillera: [95] },
+  XG: { base: [129], blanco: [129], arpillera: [142] },
+  XGM: { base: [129], blanco: [129], arpillera: [142] },
+  SG: { base: [249, 250], blanco: [249, 250], arpillera: [249, 250] },
+  SGF: { base: [249, 320], blanco: [249, 320], arpillera: [249, 320] },
+};
+
 export function normalizeWholesalePriceOptions(
   measureCode: ProductMeasureCode,
   options: readonly ProductPriceOption[],
 ): ProductPriceOption[] {
-  const previousMeasure =
-    measureCode === "SG" ? "SGF" : measureCode === "SGF" ? "SG" : null;
-  if (!previousMeasure) return [...options];
+  const defaults = priceOptionsByMeasureCode[measureCode];
 
-  const previousAmount = priceOptionsByMeasureCode[previousMeasure][0].amountInThousands;
-  const correctAmount = priceOptionsByMeasureCode[measureCode][0].amountInThousands;
-
-  // Moving SG/SGF used to retain the other measure's default price.
-  return options.map((option) =>
-    option.amountInThousands === previousAmount
-      ? { ...option, amountInThousands: correctAmount, price: `$${correctAmount} mil` }
-      : option,
-  );
+  // Upgrade saved former defaults and SG/SGF swaps, preserving custom prices.
+  return options.map((option) => {
+    if (!previousWholesaleAmounts[measureCode]?.[option.id]?.includes(option.amountInThousands)) {
+      return option;
+    }
+    const amount = (defaults.find((price) => price.id === option.id) ?? defaults[0]).amountInThousands;
+    return { ...option, amountInThousands: amount, price: `$${amount} mil` };
+  });
 }
 
 export function applyProductPriceList(product: Product, priceList: PriceList): Product {
