@@ -22,6 +22,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
+import { BulkStockConfirmDialog } from "@/components/BulkStockConfirmDialog";
 import {
   notifyCatalogProductsChanged,
   useCatalogHighlights,
@@ -241,6 +242,11 @@ export function AdminClient() {
   const [bulkStockAction, setBulkStockAction] = useState<"" | "all" | "target">(
     "",
   );
+  const [pendingBulkStock, setPendingBulkStock] = useState<{
+    productIds: string[];
+    label: string;
+    action: "all" | "target";
+  } | null>(null);
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
   const [addProductMessage, setAddProductMessage] = useState("");
@@ -728,6 +734,10 @@ export function AdminClient() {
     label: string,
     action: "all" | "target",
   ) {
+    if (stockLoading || stockSaving || stockError || bulkStockAction || orderMode) {
+      return;
+    }
+
     const productIds = Array.from(
       new Set(
         productsToUpdate
@@ -741,14 +751,14 @@ export function AdminClient() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Vas a sacar de stock ${productIds.length} cuadros de ${label}. Queres continuar?`,
-    );
+    setPendingBulkStock({ productIds, label, action });
+  }
 
-    if (!confirmed) {
-      return;
+  async function confirmBulkStock() {
+    if (!pendingBulkStock || !isAdmin || stockLoading || stockSaving || stockError || bulkStockAction || orderMode) {
+      throw new Error("Espera a que termine de cargar el stock e intenta nuevamente.");
     }
-
+    const { productIds, label, action } = pendingBulkStock;
     setActionError("");
     setAddProductMessage("");
     setBulkStockAction(action);
@@ -758,12 +768,7 @@ export function AdminClient() {
       setAddProductMessage(
         `Se sacaron de stock ${productIds.length} cuadros de ${label}.`,
       );
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar el stock masivo",
-      );
+      setPendingBulkStock(null);
     } finally {
       setBulkStockAction("");
     }
@@ -895,6 +900,14 @@ export function AdminClient() {
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] px-4 py-6 text-neutral-950">
+      {isAdmin && pendingBulkStock ? (
+        <BulkStockConfirmDialog
+          count={pendingBulkStock.productIds.length}
+          label={pendingBulkStock.label}
+          onCancel={() => setPendingBulkStock(null)}
+          onConfirm={confirmBulkStock}
+        />
+      ) : null}
       <section
         className={`mx-auto w-full border border-neutral-200 bg-white p-5 shadow-sm ${
           isAdmin ? "max-w-7xl" : "max-w-md"
@@ -1046,7 +1059,7 @@ export function AdminClient() {
                             event.target.value as BulkStockTarget,
                           )
                         }
-                        disabled={bulkStockAction !== "" || orderMode}
+                        disabled={stockLoading || stockSaving || Boolean(stockError) || bulkStockAction !== "" || orderMode}
                         className="h-10 w-full border border-red-200 bg-white px-3 text-sm text-neutral-950 outline-none transition focus:border-red-600 disabled:cursor-not-allowed disabled:bg-neutral-100"
                       >
                         <optgroup label="Carpetas">
@@ -1071,6 +1084,7 @@ export function AdminClient() {
                         type="button"
                         onClick={handleMarkBulkTargetUnavailable}
                         disabled={
+                          stockLoading || stockSaving || Boolean(stockError) ||
                           bulkStockAction !== "" ||
                           orderMode ||
                           selectedBulkStockProducts.length === 0
@@ -1086,6 +1100,7 @@ export function AdminClient() {
                         type="button"
                         onClick={handleMarkAllUnavailable}
                         disabled={
+                          stockLoading || stockSaving || Boolean(stockError) ||
                           bulkStockAction !== "" ||
                           orderMode ||
                           availableCount === 0
