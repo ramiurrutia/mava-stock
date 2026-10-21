@@ -86,6 +86,62 @@ body {
   }
 }
 
+.admin-modal-overlay {
+  animation: modal-backdrop-in 180ms ease-out;
+}
+
+.admin-modal-panel {
+  animation: admin-modal-in 260ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  transition: scale 220ms ease, opacity 220ms ease;
+}
+
+.admin-modal-panel[data-covered] {
+  scale: 0.97;
+  opacity: 0.6;
+}
+
+.image-comparison-dialog[open] {
+  animation: image-comparison-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-comparison-dialog[open]::backdrop,
+.bulk-stock-dialog[open]::backdrop {
+  animation: modal-backdrop-in 200ms ease-out;
+}
+
+.image-comparison-upload {
+  animation: image-comparison-upload-in 260ms 80ms ease-out backwards;
+}
+
+.image-comparison-match {
+  animation: image-comparison-match-in 260ms ease-out;
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-modal-in {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes image-comparison-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes image-comparison-upload-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes image-comparison-match-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .bulk-stock-dialog[open] {
   animation: bulk-stock-shake 480ms ease-out;
 }
@@ -99,7 +155,19 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bulk-stock-dialog[open] { animation: none; }
+  .admin-modal-overlay,
+  .admin-modal-panel,
+  .image-comparison-dialog[open],
+  .image-comparison-dialog[open]::backdrop,
+  .image-comparison-upload,
+  .image-comparison-match,
+  .bulk-stock-dialog[open],
+  .bulk-stock-dialog[open]::backdrop {
+    animation: none;
+    transition: none;
+  }
+
+  .admin-modal-panel[data-covered] { scale: 1; }
 }
 
 @media print {

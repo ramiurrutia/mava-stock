@@ -23,6 +23,8 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { FramePreview } from "@/components/FramePreview";
 import { BulkStockConfirmDialog } from "@/components/BulkStockConfirmDialog";
+import { checkSimilarProductImage } from "@/components/checkSimilarProductImage";
+import { SimilarProductImageDialog } from "@/components/SimilarProductImageDialog";
 import {
   notifyCatalogProductsChanged,
   useCatalogHighlights,
@@ -249,6 +251,15 @@ export function AdminClient() {
   } | null>(null);
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
+  const [imageCheckMessage, setImageCheckMessage] = useState("");
+  const imageCheckController = useRef<AbortController | null>(null);
+  const resolveImageComparison = useRef<((confirmed: boolean) => void) | null>(null);
+  const [imageComparison, setImageComparison] = useState<{
+    file: File;
+    matches: Product[];
+    failed: number;
+  } | null>(null);
+  useEffect(() => () => imageCheckController.current?.abort(), []);
   const [addProductMessage, setAddProductMessage] = useState("");
   const [deletingProductCode, setDeletingProductCode] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -581,14 +592,54 @@ export function AdminClient() {
 
   async function handleAddProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (imageCheckController.current) return;
     const form = event.currentTarget;
+    const formData = new FormData(form);
+    const controller = new AbortController();
+    imageCheckController.current = controller;
 
     setActionError("");
     setAddProductMessage("");
     setAddingProduct(true);
 
     try {
-      const response = await createAdminProduct(new FormData(form));
+      const file = formData.get("image");
+      if (!(file instanceof File) || !file.size) {
+        throw new Error("Selecciona una imagen para agregar el item.");
+      }
+      setImageCheckMessage("Buscando imagenes similares...");
+      const { matches, failed } = await checkSimilarProductImage(
+        file,
+        visibleCatalogProducts,
+        controller.signal,
+        (checked, total) => setImageCheckMessage(`Revisando imagenes: ${checked} de ${total}`),
+      );
+      if (!form.isConnected || controller.signal.aborted) return;
+      if (matches.length || failed || !visibleCatalogProducts.length) {
+        const productsByCode = new Map(visibleCatalogProducts.map((product) => [product.code, product]));
+        const confirmed = await new Promise<boolean>((resolve) => {
+          const finish = (accepted: boolean) => {
+            controller.signal.removeEventListener("abort", abort);
+            resolveImageComparison.current = null;
+            setImageComparison(null);
+            resolve(accepted);
+          };
+          const abort = () => finish(false);
+          controller.signal.addEventListener("abort", abort, { once: true });
+          resolveImageComparison.current = finish;
+          setImageComparison({
+            file,
+            failed,
+            matches: matches.flatMap((match) => {
+              const product = productsByCode.get(match.code);
+              return product ? [product] : [];
+            }),
+          });
+        });
+        if (!confirmed || controller.signal.aborted || !form.isConnected) return;
+      }
+      setImageCheckMessage("Subiendo imagen...");
+      const response = await createAdminProduct(formData);
       const addedProduct = response.product;
       const code = addedProduct?.code ?? "nuevo item";
 
@@ -613,10 +664,13 @@ export function AdminClient() {
       setAddProductMessage(`Se agrego ${code}.`);
       setAddProductOpen(false);
     } catch (error) {
+      if (controller.signal.aborted) return;
       setActionError(
         error instanceof Error ? error.message : "No se pudo agregar el item",
       );
     } finally {
+      imageCheckController.current = null;
+      setImageCheckMessage("");
       setAddingProduct(false);
     }
   }
@@ -900,6 +954,15 @@ export function AdminClient() {
 
   return (
     <main className="min-h-screen bg-[#f6f5f2] px-4 py-6 text-neutral-950">
+      {imageComparison ? (
+        <SimilarProductImageDialog
+          file={imageComparison.file}
+          matches={imageComparison.matches}
+          failed={imageComparison.failed}
+          onCancel={() => resolveImageComparison.current?.(false)}
+          onConfirm={() => resolveImageComparison.current?.(true)}
+        />
+      ) : null}
       {isAdmin && pendingBulkStock ? (
         <BulkStockConfirmDialog
           count={pendingBulkStock.productIds.length}
@@ -1018,7 +1081,11 @@ export function AdminClient() {
               <>
                 <AddProductPanel
                   adding={addingProduct}
-                  message={addProductMessage}
+                  comparing={imageComparison !== null}
+                  onCancelImageCheck={imageCheckMessage && imageCheckMessage !== "Subiendo imagen..."
+                    ? () => imageCheckController.current?.abort()
+                    : undefined}
+                  message={imageCheckMessage || actionError || addProductMessage}
                   measureCode={newProductMeasureCode}
                   onMeasureCodeChange={setNewProductMeasureCode}
                   onOpenChange={setAddProductOpen}
@@ -1604,6 +1671,8 @@ export function AdminClient() {
 
 type AddProductPanelProps = {
   adding: boolean;
+  comparing: boolean;
+  onCancelImageCheck?: () => void;
   measureCode: ProductMeasureCode;
   message: string;
   onMeasureCodeChange: (measureCode: ProductMeasureCode) => void;
@@ -1616,6 +1685,8 @@ type AddProductPanelProps = {
 
 function AddProductPanel({
   adding,
+  comparing,
+  onCancelImageCheck,
   measureCode,
   message,
   onMeasureCodeChange,
@@ -1639,6 +1710,7 @@ function AddProductPanel({
         <button
           type="button"
           onClick={() => onOpenChange(!open)}
+          disabled={adding}
           className="h-10 border border-neutral-950 bg-white px-4 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white"
         >
           {open ? "Cerrar" : "Agregar item"}
@@ -1647,14 +1719,15 @@ function AddProductPanel({
 
       {open ? (
         <div
-          className="fixed inset-0 z-80 flex items-center justify-center bg-neutral-950/55 px-4 py-6"
+          className="admin-modal-overlay fixed inset-0 z-80 flex items-center justify-center bg-neutral-950/55 px-4 py-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-product-title"
         >
           <form
             onSubmit={onSubmit}
-            className="max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-5"
+            data-covered={comparing || undefined}
+            className="admin-modal-panel max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-5"
           >
             <div className="mb-4 flex items-start justify-between gap-3 border-b border-neutral-200 pb-3">
               <div>
@@ -1674,13 +1747,14 @@ function AddProductPanel({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
+                disabled={adding}
                 className="h-10 shrink-0 border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:border-neutral-950 hover:text-neutral-950"
               >
                 Cerrar
               </button>
             </div>
 
-            <div className="space-y-4">
+            <fieldset disabled={adding} className="min-w-0 space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-2 text-sm font-semibold text-neutral-700">
                   Imagen
@@ -1782,11 +1856,20 @@ function AddProductPanel({
               </div>
 
               {message ? (
-                <p className="border border-[#7E5E35]/20 bg-[#7E5E35]/10 p-3 text-sm font-semibold text-[#5F4627]">
+                <p role="status" className="border border-[#7E5E35]/20 bg-[#7E5E35]/10 p-3 text-sm font-semibold text-[#5F4627]">
                   {message}
                 </p>
               ) : null}
-            </div>
+            </fieldset>
+            {adding && onCancelImageCheck ? (
+              <button
+                type="button"
+                onClick={onCancelImageCheck}
+                className="mt-3 min-h-11 border border-neutral-300 px-4 text-sm font-semibold hover:bg-neutral-100"
+              >
+                Cancelar revision
+              </button>
+            ) : null}
           </form>
         </div>
       ) : null}
@@ -1821,14 +1904,14 @@ function EditProductPanel({
 
   return (
     <div
-      className="fixed inset-0 z-80 flex items-center justify-center bg-neutral-950/55 px-4 py-6"
+      className="admin-modal-overlay fixed inset-0 z-80 flex items-center justify-center bg-neutral-950/55 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-product-title"
     >
       <form
         onSubmit={onSubmit}
-        className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-5"
+        className="admin-modal-panel max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-5"
       >
         <input name="code" type="hidden" value={product.code} readOnly />
 
